@@ -12,5 +12,6 @@
     "noEmit": true,
     "checkJs": false
   },
+  "include": ["src"],
   "exclude": ["node_modules", ".expo"]
 }
