@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Golden Fork",
+    "slug": "restaurant-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "EXPO_PUBLIC_API_URL": "https://restaurant-managment-system-mobileapp.onrender.com"
+    }
+  }
+}
