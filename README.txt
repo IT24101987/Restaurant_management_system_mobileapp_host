@@ -1,6 +1,5 @@
 01). GitHub Repository Link 
-GitHub Repository: https://github.com/naadesh369x/Restaurant_managment_system_mobileapp
-
+GitHub Repository: 
 
 02).Team Details 
 Group Number: SE_23
