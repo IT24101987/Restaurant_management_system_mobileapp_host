@@ -10,3 +10,38 @@ Member 4: IT24102852–Pallawala S R – Order Managment
 
 03). Deployment Details 
 Backend URL: https://restaurant-managment-system-mobileapp.onrender.com
+
+04.)Structure
+
+restaurant_app_SE_23/
+│
+frontend/
+│      ├── App.jsx
+│      ├── src/
+│         ├── assets/
+│         │
+│         ├── component/  
+│         │
+│         ├── constant/
+│         │
+│         ├── screens/
+│         │     ├── Auth/
+│         │     ├── Customer/   
+│         │     ├── staff/  
+│         │     └── Admin/
+│         │
+│         └── script/
+│              ├── api/
+│              ├── storage/
+│
+└── backend/
+    │
+    ├── index.js
+    │
+    └── routes/
+        ├── dishRoutes.js               ← API for Dishes
+        ├── tableRoutes.js              ← API for Tables
+        ├── orderRoutes.js              ← API for Orders
+        ├── reviewRoutes.js             ← API for Reviews
+        ├── tableReservationRotes.js    ← API for Table Reservations
+        └── paymentRoutes.js            ← API for Payments
