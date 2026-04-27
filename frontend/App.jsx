@@ -27,7 +27,37 @@ import AdminManagePayments from "./src/screens/Admin/AdminManagePayments";
 import { apiFetch } from "./src/script/api/client";
 import { API_BASE_URL } from "./src/constant/config";
 import { clearToken, loadToken, saveToken } from "./src/script/storage/token";
+import {
+  loadAdminPaymentDefaults as loadAdminPaymentDefaultsStorage,
+  saveAdminPaymentDefaults as saveAdminPaymentDefaultsStorage
+} from "./src/script/storage/adminPaymentDefaults";
 import { lightTheme, darkTheme, createStyles } from "./src/constant/styles";
+
+const EMPTY_ADMIN_DISH_FORM = {
+  name: "",
+  category: "",
+  price: "",
+  prepTimeMin: "",
+  description: "",
+  imageUrl: "",
+  isAvailable: true,
+  isTrending: false
+};
+
+const DEFAULT_DISH_CATEGORIES = [
+  "Appetizer",
+  "Main Course",
+  "Dessert",
+  "Beverage",
+  "Salad",
+  "Soup",
+  "Snack"
+];
+const DEFAULT_ADMIN_PAYMENT_DEFAULTS = {
+  taxPercent: "0",
+  offerType: "fixed",
+  offerValue: "0"
+};
 
 export default function App() {
   const [initializing, setInitializing] = useState(true);
@@ -151,18 +181,11 @@ export default function App() {
   const [adminDishesBusy, setAdminDishesBusy] = useState(false);
   const [adminDishesMsg, setAdminDishesMsg] = useState("");
   const [addDishModalVisible, setAddDishModalVisible] = useState(false);
+  const [editingAdminDishId, setEditingAdminDishId] = useState("");
+  const [adminDishCategoryDropdownOpen, setAdminDishCategoryDropdownOpen] = useState(false);
   const [adminOrderTypeFilter, setAdminOrderTypeFilter] = useState("all");
   const [adminOrderStatusFilter, setAdminOrderStatusFilter] = useState("all");
-  const [adminDishForm, setAdminDishForm] = useState({
-    name: "",
-    category: "",
-    price: "",
-    prepTimeMin: "",
-    description: "",
-    imageUrl: "",
-    isAvailable: true,
-    isTrending: false
-  });
+  const [adminDishForm, setAdminDishForm] = useState(EMPTY_ADMIN_DISH_FORM);
   const [adminReviews, setAdminReviews] = useState([]);
   const [adminReviewsBusy, setAdminReviewsBusy] = useState(false);
   const [adminReviewsMsg, setAdminReviewsMsg] = useState("");
@@ -178,11 +201,7 @@ export default function App() {
   const [adminTableReservations, setAdminTableReservations] = useState([]);
   const [adminTableReservationsBusy, setAdminTableReservationsBusy] = useState(false);
   const [appTheme, setAppTheme] = useState("light");
-  const [adminPaymentOptions, setAdminPaymentOptions] = useState({
-    cash: true,
-    card: true,
-    online: false
-  });
+  const [adminPaymentDefaults, setAdminPaymentDefaults] = useState(DEFAULT_ADMIN_PAYMENT_DEFAULTS);
   const adminRevenue = useMemo(() => {
     if (adminPayments.length) {
       return adminPayments
@@ -202,6 +221,23 @@ export default function App() {
         return sum + total;
       }, 0);
   }, [adminOrders, adminPayments]);
+  const saveAdminPaymentDefaults = async (defaults) => {
+    const normalizedOfferType = String(defaults?.offerType || "fixed").toLowerCase() === "percent"
+      ? "percent"
+      : "fixed";
+    const nextDefaults = {
+      taxPercent: String(defaults?.taxPercent ?? "0"),
+      offerType: normalizedOfferType,
+      offerValue: String(defaults?.offerValue ?? "0")
+    };
+    setAdminPaymentDefaults(nextDefaults);
+    try {
+      await saveAdminPaymentDefaultsStorage(nextDefaults);
+    } catch (_) {
+      // Keep in-memory defaults even if persistence fails.
+    }
+    return nextDefaults;
+  };
 
   const adminPaymentStats = useMemo(() => {
     const stats = {
@@ -303,6 +339,7 @@ export default function App() {
   const [customerPaymentsBusy, setCustomerPaymentsBusy] = useState(false);
   const [customerPaymentsMsg, setCustomerPaymentsMsg] = useState("");
   const [customerPaymentsFilter, setCustomerPaymentsFilter] = useState("paid");
+  const [customerPayingOrderId, setCustomerPayingOrderId] = useState("");
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -331,6 +368,20 @@ export default function App() {
       (dish) => String(dish?.category || "").trim() === menuCategoryFilter
     );
   }, [dishes, menuCategoryFilter]);
+  const adminDishCategoryOptions = useMemo(() => {
+    const normalizedCategories = new Map();
+    adminDishes.forEach((dish) => {
+      const category = String(dish?.category || "").trim();
+      if (!category) return;
+      const normalized = category.toLowerCase();
+      if (!normalizedCategories.has(normalized)) normalizedCategories.set(normalized, category);
+    });
+    DEFAULT_DISH_CATEGORIES.forEach((category) => {
+      const normalized = category.toLowerCase();
+      if (!normalizedCategories.has(normalized)) normalizedCategories.set(normalized, category);
+    });
+    return Array.from(normalizedCategories.values()).sort((a, b) => a.localeCompare(b));
+  }, [adminDishes]);
 
   const customerPaymentEmail = useMemo(
     () => String(profile?.email || "").trim().toLowerCase(),
@@ -367,6 +418,14 @@ export default function App() {
       return !isRefundFlow;
     });
   }, [myPayments, customerPaymentsFilter]);
+  const customerUnpaidOrders = useMemo(() => {
+    if (!customerOrders.length) return [];
+    return customerOrders.filter((order) => {
+      const paymentStatus = String(order?.paymentStatus || "unpaid").toLowerCase();
+      const orderStatus = String(order?.status || "").toLowerCase();
+      return paymentStatus !== "paid" && orderStatus !== "cancelled";
+    });
+  }, [customerOrders]);
   const filteredCustomerOrders = useMemo(() => {
     if (!customerOrders.length) return [];
     if (orderStatusFilter === "all") return customerOrders;
@@ -700,6 +759,7 @@ export default function App() {
   const bookingFee = manualBookingMode || reservationOnly ? DELIVERY_FEE : 0;
   const orderFee = manualBookingMode ? bookingFee : deliveryFee;
   const orderTotal = orderSubtotal + orderFee;
+  const manualBookingTotal = DELIVERY_FEE;
   const cardBrandOptions = ["Visa", "Mastercard", "Amex", "Discover", "UnionPay", "Other"];
 
   const formatCardNumber = (value) => {
@@ -721,6 +781,13 @@ export default function App() {
       setPaymentMethod("card");
     }
   }, [orderType, paymentMethod]);
+
+  useEffect(() => {
+    if (!isAdminRole) return;
+    if (orderType === "delivery") {
+      setOrderType("pickup");
+    }
+  }, [isAdminRole, orderType]);
 
   function normalizeTimeSlotLabel(value) {
     const raw = String(value || "").trim();
@@ -821,6 +888,9 @@ export default function App() {
     setSelectedDish(null);
     setCart((current) => current.filter((item) => !item.temp));
     setReservationOnly(false);
+    setCustomerName("");
+    setPhone("");
+    setDeliveryAddress("");
   };
   const persistCartItem = (dish) => {
     if (!dish?._id) return;
@@ -903,6 +973,14 @@ export default function App() {
     <View style={styles.heroBlock}>
       <Text style={styles.heroTitle}>{title}</Text>
       <Text style={styles.heroSubtitle}>{subtitle}</Text>
+    </View>
+  );
+  const renderOrderInfoRow = (iconName, text, key) => (
+    <View key={key} style={styles.staffOrderInfoRow}>
+      <View style={styles.staffOrderInfoIconWrap}>
+        <Ionicons name={iconName} size={12} color={theme.accent} />
+      </View>
+      <Text style={styles.staffOrderInfoText}>{text}</Text>
     </View>
   );
   const getTableChipDetails = (table) => {
@@ -1311,6 +1389,21 @@ export default function App() {
     }
   };
 
+  const payCustomerOrder = async (orderId) => {
+    if (!token || !orderId) return;
+    setCustomerPayingOrderId(String(orderId));
+    setCustomerPaymentsMsg("");
+    try {
+      await apiFetch(`/orders/${orderId}/pay`, { method: "PATCH", token });
+      await Promise.all([loadCustomerOrders(), loadCustomerPayments()]);
+      setCustomerPaymentsMsg("Payment completed.");
+    } catch (err) {
+      setCustomerPaymentsMsg(err.message || "Failed to process payment.");
+    } finally {
+      setCustomerPayingOrderId("");
+    }
+  };
+
   const createAdminPayment = async ({
     orderId,
     paymentMethod,
@@ -1364,6 +1457,16 @@ export default function App() {
 
   const handlePlaceOrder = async () => {
     if (!token || orderBusy) return;
+    const normalizedCustomerName = String(customerName || "").trim();
+    const normalizedPhone = String(phone || "").replace(/\D/g, "");
+    if (!normalizedCustomerName) {
+      setError("Customer name is required.");
+      return;
+    }
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      setError("Customer phone must be exactly 10 digits.");
+      return;
+    }
     if (manualBookingMode) {
       if (!selectedTableId) {
         setError("Select a table for booking.");
@@ -1371,14 +1474,6 @@ export default function App() {
       }
       if (!seatCount) {
         setError("Select seat count.");
-        return;
-      }
-      if (!customerName) {
-        setError("Customer name is required.");
-        return;
-      }
-      if (!phone) {
-        setError("Customer phone is required.");
         return;
       }
       if (!adminBookingDate || !adminBookingTime) {
@@ -1394,14 +1489,16 @@ export default function App() {
         setError("Card payment is required for delivery.");
         return;
       }
-      if (useSavedCard) {
-        if (!selectedCardId) {
-          setError("Select a saved card for delivery.");
+      if (!isAdminRole) {
+        if (useSavedCard) {
+          if (!selectedCardId) {
+            setError("Select a saved card for delivery.");
+            return;
+          }
+        } else if (!isCardFormComplete) {
+          setError("Enter card details for delivery.");
           return;
         }
-      } else if (!isCardFormComplete) {
-        setError("Enter card details for delivery.");
-        return;
       }
     }
     if (!cart.length) {
@@ -1461,8 +1558,8 @@ export default function App() {
               tableId: selectedTableId,
               tableNumber: selectedTable?.tableNo || selectedTable?.name || "",
               seatCount,
-              customerName,
-              phone,
+              customerName: normalizedCustomerName,
+              phone: normalizedPhone,
               timeSlotLabel: normalizedTimeSlot,
               bookingDate: adminBookingDate || undefined,
               bookingTime: `${cleanAdminTime} ${adminBookingSuffix}`.trim() || undefined,
@@ -1500,8 +1597,8 @@ export default function App() {
               reservationStart,
               tableId: orderType === "table" ? selectedTableId : undefined,
               seatCount,
-              customerName,
-              phone,
+              customerName: normalizedCustomerName,
+              phone: normalizedPhone,
               deliveryAddress,
               paymentMethod,
               paymentStatus: paymentMethod === "card" ? "paid" : "unpaid",
@@ -1522,7 +1619,13 @@ export default function App() {
             });
           }
         }
-        if (orderType === "delivery" && paymentMethod === "card" && !useSavedCard && saveCard) {
+        if (
+          !isAdminRole &&
+          orderType === "delivery" &&
+          paymentMethod === "card" &&
+          !useSavedCard &&
+          saveCard
+        ) {
           if (isCardFormComplete) {
             addSavedCard(cardForm);
           }
@@ -1547,7 +1650,7 @@ export default function App() {
         }
           setOrderMessage("Order created successfully.");
           setCart([]);
-          setOrderModalVisible(false);
+          closeOrderModal();
           setAdminBookingLocation("");
           setAdminBookingPurpose("");
           loadCatalog();
@@ -1641,6 +1744,37 @@ export default function App() {
     }
   };
 
+  const openAddDishModal = () => {
+    setEditingAdminDishId("");
+    setAdminDishCategoryDropdownOpen(false);
+    setAdminDishForm({ ...EMPTY_ADMIN_DISH_FORM });
+    setAdminDishesMsg("");
+    setAddDishModalVisible(true);
+  };
+
+  const closeDishModal = () => {
+    setAddDishModalVisible(false);
+    setEditingAdminDishId("");
+    setAdminDishCategoryDropdownOpen(false);
+  };
+
+  const editAdminDish = (dish) => {
+    setEditingAdminDishId(String(dish?._id || ""));
+    setAdminDishCategoryDropdownOpen(false);
+    setAdminDishForm({
+      name: String(dish?.name || ""),
+      category: String(dish?.category || ""),
+      price: String(dish?.price ?? ""),
+      prepTimeMin: String(dish?.prepTimeMin ?? ""),
+      description: String(dish?.description || ""),
+      imageUrl: String(dish?.imageUrl || ""),
+      isAvailable: dish?.isAvailable !== false,
+      isTrending: Boolean(dish?.isTrending)
+    });
+    setAdminDishesMsg("");
+    setAddDishModalVisible(true);
+  };
+
   const pickAdminDishImage = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -1669,37 +1803,44 @@ export default function App() {
     }
   };
 
-  const addAdminDish = async () => {
-    if (!token) return;
+  const saveAdminDish = async () => {
+    if (!token) return false;
     setAdminDishesMsg("");
     try {
-      await apiFetch("/admin/dishes", {
-        method: "POST",
+      const parsedPrice = Number(adminDishForm.price || 0);
+      const parsedPrepTime = Number(adminDishForm.prepTimeMin || 15);
+      const body = {
+        name: String(adminDishForm.name || "").trim(),
+        category: String(adminDishForm.category || "").trim(),
+        price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
+        prepTimeMin: Number.isFinite(parsedPrepTime) && parsedPrepTime > 0 ? parsedPrepTime : 15,
+        description: String(adminDishForm.description || "").trim(),
+        imageUrl: String(adminDishForm.imageUrl || "").trim(),
+        isAvailable: adminDishForm.isAvailable !== false,
+        isTrending: Boolean(adminDishForm.isTrending)
+      };
+
+      const endpoint = editingAdminDishId
+        ? `/admin/dishes/${editingAdminDishId}`
+        : "/admin/dishes";
+      const method = editingAdminDishId ? "PATCH" : "POST";
+
+      await apiFetch(endpoint, {
+        method,
         token,
-        body: {
-          name: adminDishForm.name,
-          category: adminDishForm.category,
-          price: Number(adminDishForm.price || 0),
-          prepTimeMin: Number(adminDishForm.prepTimeMin || 0),
-          description: adminDishForm.description,
-          imageUrl: adminDishForm.imageUrl,
-          isAvailable: adminDishForm.isAvailable,
-          isTrending: adminDishForm.isTrending
-        }
+        body
       });
-      setAdminDishForm({
-        name: "",
-        category: "",
-        price: "",
-        prepTimeMin: "",
-        description: "",
-        imageUrl: "",
-        isAvailable: true,
-        isTrending: false
-      });
-      loadAdminDishes();
+      setAdminDishForm({ ...EMPTY_ADMIN_DISH_FORM });
+      setEditingAdminDishId("");
+      setAdminDishCategoryDropdownOpen(false);
+      await loadAdminDishes();
+      return true;
     } catch (err) {
-      setAdminDishesMsg(err.message || "Failed to add dish.");
+      setAdminDishesMsg(
+        err.message ||
+          (editingAdminDishId ? "Failed to update dish." : "Failed to add dish.")
+      );
+      return false;
     }
   };
 
@@ -1894,10 +2035,6 @@ export default function App() {
     setProfileForm((current) => ({ ...current, [key]: value }));
   };
 
-  const toggleAdminPaymentOption = (key) => {
-    setAdminPaymentOptions((current) => ({ ...current, [key]: !current[key] }));
-  };
-
   const addSavedCard = (form) => {
     const last4 = String(form.cardNumber || "").slice(-4);
     const newCard = {
@@ -2013,6 +2150,27 @@ export default function App() {
       loadCustomerPayments();
     }
   }, [token, role]);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const loadedDefaults = await loadAdminPaymentDefaultsStorage();
+        if (isMounted && loadedDefaults) {
+          setAdminPaymentDefaults({
+            taxPercent: String(loadedDefaults.taxPercent ?? "0"),
+            offerType: String(loadedDefaults.offerType || "fixed").toLowerCase() === "percent" ? "percent" : "fixed",
+            offerValue: String(loadedDefaults.offerValue ?? "0")
+          });
+        }
+      } catch (_) {
+        if (isMounted) setAdminPaymentDefaults(DEFAULT_ADMIN_PAYMENT_DEFAULTS);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!(isAdminRole && adminTab === "tables")) return;
@@ -2236,17 +2394,25 @@ export default function App() {
                   <View key={String(order._id || order.orderNumber)} style={styles.staffOrderCard}>
                     <View style={styles.staffOrderHeader}>
                       <Text style={styles.staffOrderTitle}>{order.orderNumber || "Order"}</Text>
-                      <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                      <View style={styles.staffOrderStatusBadge}>
+                        <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.staffOrderMeta}>
-                      Type: {formatOrderType(order.orderType)} - Payment: {order.paymentStatus || "Unpaid"}
-                    </Text>
-                    <Text style={styles.staffOrderMeta}>
-                      Customer: {order.customerName || order.createdBy || "-"}
-                    </Text>
-                    <Text style={styles.staffOrderMeta}>
-                      Items: {itemsText || "-"}
-                    </Text>
+                    {renderOrderInfoRow(
+                      "receipt-outline",
+                      `Type: ${formatOrderType(order.orderType)} - Payment: ${order.paymentStatus || "Unpaid"}`,
+                      `staff-type-${order._id}`
+                    )}
+                    {renderOrderInfoRow(
+                      "person-outline",
+                      `Customer: ${order.customerName || order.createdBy || "-"}`,
+                      `staff-customer-${order._id}`
+                    )}
+                    {renderOrderInfoRow(
+                      "list-outline",
+                      `Items: ${itemsText || "-"}`,
+                      `staff-items-${order._id}`
+                    )}
                     <View style={styles.staffActionRow}>
                       {actions.length ? (
                         actions.map((action) => (
@@ -2348,7 +2514,7 @@ export default function App() {
                               Subtotal
                             </Text>
                             <Text style={[styles.adminOrderSummaryValue, isAdminDark && styles.adminOrderSummaryValueDark]}>
-                              LKR {orderSubtotal.toFixed(2)}
+                              LKR 0.00
                             </Text>
                           </View>
                           <View style={[styles.adminOrderSummaryDivider, isAdminDark && styles.adminOrderSummaryDividerDark]} />
@@ -2366,7 +2532,7 @@ export default function App() {
                               Total to Pay
                             </Text>
                             <Text style={[styles.adminOrderSummaryValue, isAdminDark && styles.adminOrderSummaryValueDark]}>
-                              LKR {orderTotal.toFixed(2)}
+                              LKR {manualBookingTotal.toFixed(2)}
                             </Text>
                           </View>
                         </View>
@@ -2384,7 +2550,10 @@ export default function App() {
                             placeholderTextColor="#8B8B8B"
                             keyboardType="phone-pad"
                             value={phone}
-                            onChangeText={setPhone}
+                            onChangeText={(value) =>
+                              setPhone(String(value || "").replace(/\D/g, "").slice(0, 10))
+                            }
+                            maxLength={10}
                           />
                         </View>
                         <View style={styles.formRow}>
@@ -2626,7 +2795,7 @@ export default function App() {
                           Order Type
                         </Text>
                         <View style={styles.orderTypeRow}>
-                          {["table", "delivery", "pickup"].map((type) => (
+                          {["table", "pickup"].map((type) => (
                             <TouchableOpacity
                               key={type}
                               style={[styles.orderTypeButton, orderType === type && styles.orderTypeActive]}
@@ -2785,7 +2954,7 @@ export default function App() {
                       )
                     ) : null}
 
-                    {paymentMethod === "card" ? (
+                    {paymentMethod === "card" && !isAdminRole ? (
                       <View style={styles.cardBlock}>
                         <View style={styles.filterRow}>
                           <TouchableOpacity
@@ -2994,18 +3163,21 @@ export default function App() {
                     </Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Customer name (optional)"
+                      placeholder="Customer name"
                       placeholderTextColor="#8F98A8"
                       value={customerName}
                       onChangeText={setCustomerName}
                     />
                     <TextInput
                       style={styles.input}
-                      placeholder="Phone (optional)"
+                      placeholder="Phone (10 digits)"
                       placeholderTextColor="#8F98A8"
                       value={phone}
-                      onChangeText={setPhone}
+                      onChangeText={(value) =>
+                        setPhone(String(value || "").replace(/\D/g, "").slice(0, 10))
+                      }
                       keyboardType="phone-pad"
+                      maxLength={10}
                     />
 
                     {reservationOnly ? (
@@ -3196,15 +3368,15 @@ export default function App() {
             visible={addDishModalVisible}
             animationType="slide"
             transparent
-            onRequestClose={() => setAddDishModalVisible(false)}
+            onRequestClose={closeDishModal}
           >
             <View style={styles.modalOverlay}>
               <View style={[styles.adminModalSheet, isAdminDark && styles.adminModalSheetDark]}>
                 <View style={[styles.adminModalHeader, isAdminDark && styles.adminModalHeaderDark]}>
                   <Text style={[styles.adminModalTitle, isAdminDark && styles.adminModalTitleDark]}>
-                    Add Dish
+                    {editingAdminDishId ? "Edit Dish" : "Add Dish"}
                   </Text>
-                  <TouchableOpacity onPress={() => setAddDishModalVisible(false)}>
+                  <TouchableOpacity onPress={closeDishModal}>
                     <Text style={[styles.adminModalClose, isAdminDark && styles.adminModalCloseDark]}>
                       Close
                     </Text>
@@ -3219,13 +3391,35 @@ export default function App() {
                       value={adminDishForm.name}
                       onChangeText={(value) => setAdminDishForm((s) => ({ ...s, name: value }))}
                     />
-                    <TextInput
-                      style={[styles.adminInput, isAdminDark && styles.adminInputDark]}
-                      placeholder="Category"
-                      placeholderTextColor="#8B8B8B"
-                      value={adminDishForm.category}
-                      onChangeText={(value) => setAdminDishForm((s) => ({ ...s, category: value }))}
-                    />
+                    <Text style={[styles.adminFieldLabel, isAdminDark && styles.adminFieldLabelDark]}>
+                      Category
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.adminDropdown, isAdminDark && styles.adminDropdownDark]}
+                      onPress={() => setAdminDishCategoryDropdownOpen((current) => !current)}
+                    >
+                      <Text style={[styles.adminDropdownText, isAdminDark && styles.adminDropdownTextDark]}>
+                        {adminDishForm.category || "Select category"}
+                      </Text>
+                    </TouchableOpacity>
+                    {adminDishCategoryDropdownOpen ? (
+                      <View style={[styles.adminDropdownMenu, isAdminDark && styles.adminDropdownMenuDark]}>
+                        {adminDishCategoryOptions.map((value) => (
+                          <TouchableOpacity
+                            key={value}
+                            style={styles.adminDropdownItem}
+                            onPress={() => {
+                              setAdminDishForm((current) => ({ ...current, category: value }));
+                              setAdminDishCategoryDropdownOpen(false);
+                            }}
+                          >
+                            <Text style={[styles.adminDropdownItemText, isAdminDark && styles.adminDropdownItemTextDark]}>
+                              {value}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : null}
                     <TextInput
                       style={[styles.adminInput, isAdminDark && styles.adminInputDark]}
                       placeholder="Price"
@@ -3289,12 +3483,12 @@ export default function App() {
                     <TouchableOpacity
                       style={[styles.adminPrimaryButton, isAdminDark && styles.adminPrimaryButtonDark]}
                       onPress={async () => {
-                        await addAdminDish();
-                        setAddDishModalVisible(false);
+                        const saved = await saveAdminDish();
+                        if (saved) closeDishModal();
                       }}
                     >
                       <Text style={[styles.adminPrimaryText, isAdminDark && styles.adminPrimaryTextDark]}>
-                        Save Dish
+                        {editingAdminDishId ? "Update Dish" : "Save Dish"}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -3529,7 +3723,8 @@ export default function App() {
                 adminDishesMsg={adminDishesMsg}
                 adminDishesBusy={adminDishesBusy}
                 loadAdminDishes={loadAdminDishes}
-                setAddDishModalVisible={setAddDishModalVisible}
+                openAddDishModal={openAddDishModal}
+                editAdminDish={editAdminDish}
                 toggleAdminDishAvailability={toggleAdminDishAvailability}
                 toggleAdminDishTrending={toggleAdminDishTrending}
                 deleteAdminDish={deleteAdminDish}
@@ -3641,8 +3836,8 @@ export default function App() {
                 isAdminDark={isAdminDark}
                 adminPaymentStats={adminPaymentStats}
                 adminRevenue={adminRevenue}
-                adminPaymentOptions={adminPaymentOptions}
-                toggleAdminPaymentOption={toggleAdminPaymentOption}
+                adminPaymentDefaults={adminPaymentDefaults}
+                saveAdminPaymentDefaults={saveAdminPaymentDefaults}
                 adminOrders={adminOrders}
                 adminActiveOrders={adminActiveOrders}
                 adminPayments={adminPayments}
@@ -3770,7 +3965,7 @@ export default function App() {
                         <View style={styles.adminOrderSummary}>
                           <View style={styles.adminOrderSummaryItem}>
                             <Text style={styles.adminOrderSummaryLabel}>Subtotal</Text>
-                            <Text style={styles.adminOrderSummaryValue}>LKR {orderSubtotal.toFixed(2)}</Text>
+                            <Text style={styles.adminOrderSummaryValue}>LKR 0.00</Text>
                           </View>
                           <View style={styles.adminOrderSummaryDivider} />
                           <View style={styles.adminOrderSummaryItem}>
@@ -3780,7 +3975,7 @@ export default function App() {
                           <View style={styles.adminOrderSummaryDivider} />
                           <View style={styles.adminOrderSummaryItem}>
                             <Text style={styles.adminOrderSummaryLabel}>Total to Pay</Text>
-                            <Text style={styles.adminOrderSummaryValue}>LKR {orderTotal.toFixed(2)}</Text>
+                            <Text style={styles.adminOrderSummaryValue}>LKR {manualBookingTotal.toFixed(2)}</Text>
                           </View>
                         </View>
                         <Text style={styles.profileLabel}>Customer Details</Text>
@@ -3793,11 +3988,14 @@ export default function App() {
                         />
                         <TextInput
                           style={styles.input}
-                          placeholder="Phone"
+                          placeholder="Phone (10 digits)"
                           placeholderTextColor="#8F98A8"
                           value={phone}
-                          onChangeText={setPhone}
+                          onChangeText={(value) =>
+                            setPhone(String(value || "").replace(/\D/g, "").slice(0, 10))
+                          }
                           keyboardType="phone-pad"
+                          maxLength={10}
                         />
 
                         <Text style={styles.profileLabel}>Booking Date</Text>
@@ -4224,18 +4422,21 @@ export default function App() {
                   <Text style={styles.profileLabel}>Customer Details</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Customer name (optional)"
+                    placeholder="Customer name"
                     placeholderTextColor="#8F98A8"
                     value={customerName}
                     onChangeText={setCustomerName}
                   />
                   <TextInput
                     style={styles.input}
-                    placeholder="Phone (optional)"
+                    placeholder="Phone (10 digits)"
                     placeholderTextColor="#8F98A8"
                     value={phone}
-                    onChangeText={setPhone}
+                    onChangeText={(value) =>
+                      setPhone(String(value || "").replace(/\D/g, "").slice(0, 10))
+                    }
                     keyboardType="phone-pad"
+                    maxLength={10}
                   />
 
                   {cart.length ? (
@@ -4577,25 +4778,37 @@ export default function App() {
                   <View key={String(order._id || order.orderNumber)} style={styles.staffOrderCard}>
                     <View style={styles.staffOrderHeader}>
                       <Text style={styles.staffOrderTitle}>{order.orderNumber || "Order"}</Text>
-                      <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                      <View style={styles.staffOrderStatusBadge}>
+                        <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.staffOrderMeta}>
-                      Type: {formatOrderType(order.orderType)} - Payment: {order.paymentStatus || "Unpaid"}
-                    </Text>
+                    {renderOrderInfoRow(
+                      "receipt-outline",
+                      `Type: ${formatOrderType(order.orderType)} - Payment: ${order.paymentStatus || "Unpaid"}`,
+                      `customer-type-${order._id}`
+                    )}
                     {normalizeOrderType(order.orderType) === "table" ? (
-                      <Text style={styles.staffOrderMeta}>
-                        Table: {order.tableNumber || order.tableId?.tableNo || "-"} - Seats: {order.seatCount || "-"}
-                      </Text>
+                      renderOrderInfoRow(
+                        "grid-outline",
+                        `Table: ${order.tableNumber || order.tableId?.tableNo || "-"} - Seats: ${order.seatCount || "-"}`,
+                        `customer-table-${order._id}`
+                      )
                     ) : null}
-                    <Text style={styles.staffOrderMeta}>
-                      Booking: {formatReservationRange(order)}
-                    </Text>
-                    <Text style={styles.staffOrderMeta}>
-                      Created: {formatDateTime(order.createdAt)}
-                    </Text>
-                    <Text style={styles.staffOrderMeta}>
-                      Items: {itemsText || "-"}
-                    </Text>
+                    {renderOrderInfoRow(
+                      "calendar-outline",
+                      `Booking: ${formatReservationRange(order)}`,
+                      `customer-booking-${order._id}`
+                    )}
+                    {renderOrderInfoRow(
+                      "time-outline",
+                      `Created: ${formatDateTime(order.createdAt)}`,
+                      `customer-created-${order._id}`
+                    )}
+                    {renderOrderInfoRow(
+                      "list-outline",
+                      `Items: ${itemsText || "-"}`,
+                      `customer-items-${order._id}`
+                    )}
                     {canCancel ? (
                       <View style={styles.orderActionRow}>
                         <TouchableOpacity
@@ -4792,7 +5005,10 @@ export default function App() {
                   </View>
                   {savedCards.length ? (
                     savedCards.slice(0, 2).map((card) => (
-                      <View key={String(card._id)} style={styles.savedCardItem}>
+                      <View
+                        key={String(card._id)}
+                        style={styles.savedCardItem}
+                      >
                         <View style={styles.seatMapHeader}>
                           <Text style={styles.staffOrderTitle}>
                             {card.brand || "Card"} **** {card.last4}
@@ -4834,7 +5050,10 @@ export default function App() {
                 ) : null}
                 {customerReviews.length ? (
                   customerReviews.map((review) => (
-                    <View key={String(review._id)} style={styles.seatMapCard}>
+                    <View
+                      key={String(review._id)}
+                      style={styles.seatMapCard}
+                    >
                       <Text style={styles.staffOrderTitle}>
                         {review.targetType === "service"
                           ? "Service Review"
@@ -4872,6 +5091,8 @@ export default function App() {
                 customerPaymentsBusy={customerPaymentsBusy}
                 filteredPayments={filteredPayments}
                 loadCustomerPayments={loadCustomerPayments}
+                loadCustomerOrders={loadCustomerOrders}
+                unpaidOrders={customerUnpaidOrders}
                 formatDateTime={formatDateTime}
               />
             ) : null}
@@ -4973,17 +5194,25 @@ export default function App() {
                   <View key={String(order._id || order.orderNumber)} style={styles.staffOrderCard}>
                     <View style={styles.staffOrderHeader}>
                       <Text style={styles.staffOrderTitle}>{order.orderNumber || "Booking"}</Text>
-                      <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                      <View style={styles.staffOrderStatusBadge}>
+                        <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.staffOrderMeta}>
-                      Table: {order.tableNumber || order.tableId?.tableNo || "-"} - Seats: {order.seatCount || "-"}
-                    </Text>
-                    <Text style={styles.staffOrderMeta}>
-                      Booking: {formatReservationRange(order)}
-                    </Text>
-                    <Text style={styles.staffOrderMeta}>
-                      Created: {formatDateTime(order.createdAt)}
-                    </Text>
+                    {renderOrderInfoRow(
+                      "grid-outline",
+                      `Table: ${order.tableNumber || order.tableId?.tableNo || "-"} - Seats: ${order.seatCount || "-"}`,
+                      `booking-table-${order._id}`
+                    )}
+                    {renderOrderInfoRow(
+                      "calendar-outline",
+                      `Booking: ${formatReservationRange(order)}`,
+                      `booking-slot-${order._id}`
+                    )}
+                    {renderOrderInfoRow(
+                      "time-outline",
+                      `Created: ${formatDateTime(order.createdAt)}`,
+                      `booking-created-${order._id}`
+                    )}
                     {canCancel ? (
                       <View style={styles.orderActionRow}>
                         <TouchableOpacity
