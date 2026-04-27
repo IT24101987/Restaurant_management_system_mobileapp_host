@@ -1,5 +1,6 @@
-﻿import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import React from "react";
+import { Image, View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function AdminManageReviews({
   adminReviews,
@@ -10,10 +11,11 @@ export default function AdminManageReviews({
   styles,
   isAdminDark
 }) {
-  const totalReviews = Array.isArray(adminReviews) ? adminReviews.length : 0;
+  const reviews = Array.isArray(adminReviews) ? adminReviews : [];
+  const totalReviews = reviews.length;
   const avgRating =
     totalReviews > 0
-      ? adminReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / totalReviews
+      ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / totalReviews
       : 0;
 
   const statPalette = [
@@ -21,6 +23,26 @@ export default function AdminManageReviews({
     { light: styles.adminStatBlue, dark: styles.adminStatBlueDark },
     { light: styles.adminStatGreen, dark: styles.adminStatGreenDark }
   ];
+
+  const renderStars = (rating) => {
+    const safeRating = Math.max(0, Math.min(5, Number(rating || 0)));
+    const filledCount = Math.round(safeRating);
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+        {Array.from({ length: 5 }).map((_, index) => {
+          const filled = index < filledCount;
+          return (
+            <Ionicons
+              key={`star-${index}`}
+              name={filled ? "star" : "star-outline"}
+              size={13}
+              color={filled ? "#F59E0B" : isAdminDark ? "#94A3B8" : "#94A3B8"}
+            />
+          );
+        })}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.adminSection}>
@@ -39,6 +61,7 @@ export default function AdminManageReviews({
         </TouchableOpacity>
       </View>
       {adminReviewsMsg ? <Text style={styles.error}>{adminReviewsMsg}</Text> : null}
+
       <View style={styles.adminStatsRow}>
         {[
           { label: "Total Reviews", value: totalReviews },
@@ -66,29 +89,75 @@ export default function AdminManageReviews({
           );
         })}
       </View>
-      {adminReviews.map((review) => (
-        <View key={String(review._id)} style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
-          <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
-            {review.dishId?.name || "Service Review"} • {review.rating}/5
-          </Text>
-          <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
-            {review.reviewerName || "Anonymous"} • {review.targetType}
-          </Text>
-          <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
-            {review.comment || "No comment"}
-          </Text>
-          <View style={styles.adminActionRow}>
-            <TouchableOpacity
-              style={[styles.adminDangerButton, isAdminDark && styles.adminDangerButtonDark]}
-              onPress={() => deleteAdminReview(review._id)}
-            >
-              <Text style={[styles.adminDangerText, isAdminDark && styles.adminDangerTextDark]}>
-                Delete
+
+      {reviews.map((review) => {
+        const dish = review?.dishId || {};
+        const dishImage =
+          dish?.imageUrl || dish?.image || dish?.photo || dish?.thumbnail || dish?.imageUri || "";
+        const dishName = dish?.name || "Service Review";
+        const reviewerName = review?.reviewerName || "Anonymous";
+        const reviewType = review?.targetType || "dish";
+        const comment = review?.comment || "No comment";
+        const rating = Number(review?.rating || 0);
+
+        return (
+          <View key={String(review?._id)} style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              {dishImage ? (
+                <Image source={{ uri: dishImage }} style={styles.adminDishThumb} />
+              ) : (
+                <View style={[styles.adminDishThumbPlaceholderLarge, { width: 40, height: 40, borderRadius: 10 }]}>
+                  <Ionicons name="image-outline" size={15} color={isAdminDark ? "#FDBA74" : "#9A3412"} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="restaurant-outline" size={14} color={isAdminDark ? "#FDBA74" : "#F97316"} />
+                  <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>{dishName}</Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                  {renderStars(rating)}
+                  <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+                    {rating.toFixed(1)}/5
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <Ionicons name="person-outline" size={13} color={isAdminDark ? "#94A3B8" : "#64748B"} />
+              <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+                {reviewerName}
               </Text>
-            </TouchableOpacity>
+              <Ionicons name="pricetag-outline" size={13} color={isAdminDark ? "#94A3B8" : "#64748B"} />
+              <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+                {reviewType}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 2 }}>
+              <Ionicons name="chatbubble-ellipses-outline" size={13} color={isAdminDark ? "#94A3B8" : "#64748B"} />
+              <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark, { flex: 1 }]}>
+                {comment}
+              </Text>
+            </View>
+
+            <View style={styles.adminActionRow}>
+              <TouchableOpacity
+                style={[styles.adminDangerButton, isAdminDark && styles.adminDangerButtonDark]}
+                onPress={() => deleteAdminReview(review._id)}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons name="trash-outline" size={13} color={isAdminDark ? "#FEE2E2" : "#FFFFFF"} />
+                  <Text style={[styles.adminDangerText, isAdminDark && styles.adminDangerTextDark]}>
+                    Delete
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }

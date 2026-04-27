@@ -465,7 +465,10 @@ export default function AdminDashboard({
                         placeholderTextColor="#8B8B8B"
                         keyboardType="phone-pad"
                         value={phone}
-                        onChangeText={setPhone}
+                        onChangeText={(value) =>
+                          setPhone(String(value || "").replace(/\D/g, "").slice(0, 10))
+                        }
+                        maxLength={10}
                       />
                     </View>
                     <View style={styles.formRow}>
@@ -701,7 +704,7 @@ export default function AdminDashboard({
                       Order Type
                     </Text>
                     <View style={styles.orderTypeRow}>
-                      {["table", "delivery", "pickup"].map((type) => (
+                      {["table", "pickup"].map((type) => (
                         <TouchableOpacity
                           key={type}
                           style={[styles.orderTypeButton, orderType === type && styles.orderTypeActive]}
@@ -801,7 +804,7 @@ export default function AdminDashboard({
                       ))}
                     </View>
 
-                    {paymentMethod === "card" ? (
+                    {paymentMethod === "card" && false ? (
                       <View style={styles.cardBlock}>
                         <View style={styles.filterRow}>
                           <TouchableOpacity
@@ -958,18 +961,21 @@ export default function AdminDashboard({
                     </Text>
                     <TextInput
                       style={[styles.adminInput, isAdminDark && styles.adminInputDark]}
-                      placeholder="Customer name (optional)"
+                      placeholder="Customer name"
                       placeholderTextColor="#8B8B8B"
                       value={customerName}
                       onChangeText={setCustomerName}
                     />
                     <TextInput
                       style={[styles.adminInput, isAdminDark && styles.adminInputDark]}
-                      placeholder="Phone (optional)"
+                      placeholder="Phone (10 digits)"
                       placeholderTextColor="#8B8B8B"
                       value={phone}
-                      onChangeText={setPhone}
+                      onChangeText={(value) =>
+                        setPhone(String(value || "").replace(/\D/g, "").slice(0, 10))
+                      }
                       keyboardType="phone-pad"
+                      maxLength={10}
                     />
 
                     {adminActiveOrders.length ? (
@@ -1273,4 +1279,3 @@ export default function AdminDashboard({
     </View>
   );
 }
-

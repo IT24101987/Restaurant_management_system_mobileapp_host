@@ -101,6 +101,7 @@ export default function CustomerDashboard({
   customerPaymentsBusy,
   filteredPayments,
   loadCustomerPayments,
+  unpaidOrders,
   customerReviews,
   customerReviewsBusy,
   customerReviewsMsg,
@@ -285,6 +286,8 @@ export default function CustomerDashboard({
           customerPaymentsBusy={customerPaymentsBusy}
           filteredPayments={filteredPayments}
           loadCustomerPayments={loadCustomerPayments}
+          loadCustomerOrders={loadCustomerOrders}
+          unpaidOrders={unpaidOrders}
           customerReviews={customerReviews}
           customerReviewsBusy={customerReviewsBusy}
           customerReviewsMsg={customerReviewsMsg}
