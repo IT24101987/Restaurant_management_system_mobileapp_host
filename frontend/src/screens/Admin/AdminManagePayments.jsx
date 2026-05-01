@@ -35,6 +35,7 @@ export default function AdminManagePayments({
   const [settingsMsg, setSettingsMsg] = useState("");
   const [refundBusyId, setRefundBusyId] = useState("");
   const [refundMsg, setRefundMsg] = useState("");
+  const [paymentTab, setPaymentTab] = useState("unpaid");
 
   const selectedOrder = useMemo(
     () => adminOrders.find((order) => String(order._id) === String(selectedOrderId)),
@@ -64,6 +65,12 @@ export default function AdminManagePayments({
     );
   }, [adminPayments]);
 
+  const refundedPayments = useMemo(() => {
+    return (adminPayments || []).filter(
+      (payment) => String(payment?.refundStatus || "").toLowerCase() === "approved"
+    );
+  }, [adminPayments]);
+
   const paymentByOrderId = useMemo(() => {
     const map = new Map();
     (adminPayments || []).forEach((payment) => {
@@ -77,6 +84,7 @@ export default function AdminManagePayments({
     const method = String(order?.paymentMethod || "").toLowerCase();
     return method === "card" ? "card" : "cash";
   };
+
 
   useEffect(() => {
     if (!selectedOrder) return;
@@ -327,6 +335,28 @@ export default function AdminManagePayments({
             <Text style={[styles.adminStatValue, isAdminDark && styles.adminStatValueDark]}>{item.value}</Text>
           </View>
         ))}
+      </View>
+
+      <View style={styles.profileTabs}>
+        {[
+          { key: "unpaid", label: "Unpaid Orders" },
+          { key: "paid", label: "Paid Orders" },
+          { key: "requests", label: "Refund Requests" },
+          { key: "refunded", label: "Refund Orders" }
+        ].map((tab) => {
+          const active = paymentTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.profileTabButton, active && styles.profileTabButtonActive]}
+              onPress={() => setPaymentTab(tab.key)}
+            >
+              <Text style={[styles.profileTabText, active && styles.profileTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Modal
@@ -623,6 +653,7 @@ export default function AdminManagePayments({
         )}
       </View>
 
+      {paymentTab === "unpaid" ? (
       <View style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
         <View style={styles.adminCardHeader}>
           <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
@@ -694,7 +725,9 @@ export default function AdminManagePayments({
           </Text>
         )}
       </View>
+      ) : null}
 
+      {paymentTab === "requests" ? (
       <View style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
         <View style={styles.adminCardHeader}>
           <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
@@ -774,8 +807,11 @@ export default function AdminManagePayments({
           </Text>
         )}
       </View>
+      ) : null}
 
-            <View style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
+      {paymentTab === "paid" ? (
+      <>
+      <View style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
         <View style={styles.adminCardHeader}>
           <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
             Paid Orders
@@ -812,9 +848,11 @@ export default function AdminManagePayments({
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   {isRefunded ? (
-                    <Text style={[styles.adminStatusText, isAdminDark && styles.adminStatusTextDark]}>
-                      REFUNDED
-                    </Text>
+                    <View style={[styles.adminStatusPill, isAdminDark && styles.adminStatusPillDark]}>
+                      <Text style={[styles.adminStatusText, isAdminDark && styles.adminStatusTextDark]}>
+                        REFUNDED
+                      </Text>
+                    </View>
                   ) : (
                     <TouchableOpacity
                       style={[
@@ -887,6 +925,55 @@ export default function AdminManagePayments({
           </Text>
         )}
       </View>
+      </>
+      ) : null}
+
+      {paymentTab === "refunded" ? (
+      <View style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
+        <View style={styles.adminCardHeader}>
+          <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
+            Refund Orders
+          </Text>
+          <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+            {refundedPayments.length} refunded
+          </Text>
+        </View>
+        {refundedPayments.length ? (
+          refundedPayments.map((payment) => (
+            <View key={String(payment._id)} style={[styles.adminActionRow, { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: isAdminDark ? "rgba(148,163,184,0.2)" : "#E2E8F0" }]}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+                  <Ionicons name="arrow-undo-circle-outline" size={15} color={isAdminDark ? "#FCA5A5" : "#DC2626"} />
+                  <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
+                    {payment.orderNumber || payment.orderId?.orderNumber || "Order"} •{" "}
+                    {formatOrderType(payment.orderId?.orderType)}
+                  </Text>
+                </View>
+                {renderMetaRow(
+                  "person-outline",
+                  `Customer: ${payment.customerName || payment.orderId?.customerName || "-"}`,
+                  `refunded-customer-${payment._id}`
+                )}
+                {renderMetaRow(
+                  "cash-outline",
+                  `Refunded: LKR ${Number(payment.totalAmount || 0).toFixed(2)} • ${formatDateTime(payment.updatedAt || payment.createdAt)}`,
+                  `refunded-total-${payment._id}`
+                )}
+              </View>
+              <View style={[styles.adminStatusPill, isAdminDark && styles.adminStatusPillDark]}>
+                <Text style={[styles.adminStatusText, isAdminDark && styles.adminStatusTextDark]}>
+                  REFUNDED
+                </Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+            No refunded orders yet.
+          </Text>
+        )}
+      </View>
+      ) : null}
     </View>
   );
 }

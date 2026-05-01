@@ -1,0 +1,12 @@
+# Set once to a stable public URL (recommended for "no IP changes").
+# If using ngrok:
+#   1) Start backend on port 3000.
+#   2) In another terminal: ngrok http 3000
+#   3) Copy the https URL and set it below.
+$env:EXPO_PUBLIC_API_URL="https://YOUR_NGROK_URL"
+npx expo start -c
+
+
+//wifiext
+$env:EXPO_PUBLIC_API_URL="http://192.168.11.160:3000"
+>> npx expo start -c

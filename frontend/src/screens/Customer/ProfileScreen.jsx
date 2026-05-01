@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   Text,
   TextInput,
@@ -50,6 +51,21 @@ export default function ProfileScreen({
   styles,
   theme
 }) {
+  const [paymentPickerOpen, setPaymentPickerOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const safeSavedCards = Array.isArray(savedCards) ? savedCards : [];
+  const selectedCard = useMemo(
+    () => safeSavedCards.find((card) => card.isDefault) || safeSavedCards[0] || null,
+    [safeSavedCards]
+  );
+
+  const onSelectProfilePaymentMethod = (cardId) => {
+    if (typeof setDefaultSavedCard === "function") {
+      setDefaultSavedCard(cardId);
+    }
+    setPaymentPickerOpen(false);
+  };
+
   return (
     <ScrollView contentContainerStyle={[styles.catalogList, styles.bottomNavSpace]}>
       {renderCustomerHeader("My Profile", "Manage your account details.")}
@@ -68,7 +84,8 @@ export default function ProfileScreen({
         {[
           { key: "profile", label: "My Profile" },
           { key: "reviews", label: "My Reviews" },
-          { key: "payments", label: "My Payments" }
+          { key: "payments", label: "My Payments" },
+          { key: "theme", label: "Theme" }
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -140,56 +157,29 @@ export default function ProfileScreen({
             <View style={styles.profileSectionHeader}>
               <Text style={styles.sectionTitle}>Change Password</Text>
             </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Current password"
-              value={passwordForm.currentPassword}
-              onChangeText={(value) => setPasswordForm((s) => ({ ...s, currentPassword: value }))}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="New password"
-              value={passwordForm.newPassword}
-              onChangeText={(value) => setPasswordForm((s) => ({ ...s, newPassword: value }))}
-              secureTextEntry
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm new password"
-              value={passwordForm.confirmPassword}
-              onChangeText={(value) => setPasswordForm((s) => ({ ...s, confirmPassword: value }))}
-              secureTextEntry
-            />
-            {passwordMsg ? <Text style={styles.info}>{passwordMsg}</Text> : null}
-            <TouchableOpacity style={styles.placeOrderButton} onPress={handleChangePassword} disabled={passwordBusy}>
-              {passwordBusy ? (
-                <ActivityIndicator color="#0A0A0A" />
+            <View style={styles.paymentMethodInlineCard}>
+              <Text style={styles.profileLabel}>Payment Method</Text>
+              {selectedCard ? (
+                <Text style={styles.staffOrderMeta}>
+                  {selectedCard.brand || "Card"} **** {selectedCard.last4} {selectedCard.isDefault ? "(Default)" : ""}
+                </Text>
               ) : (
-                <Text style={styles.primaryText}>Update Password</Text>
+                <Text style={styles.helperText}>No saved payment method yet.</Text>
               )}
+              <TouchableOpacity
+                style={styles.actionGhost}
+                onPress={() => setPaymentPickerOpen(true)}
+              >
+                <Text style={styles.actionGhostText}>Change Method</Text>
+              </TouchableOpacity>
+            </View>
+            {passwordMsg ? <Text style={styles.info}>{passwordMsg}</Text> : null}
+            <TouchableOpacity
+              style={styles.placeOrderButton}
+              onPress={() => setPasswordModalOpen(true)}
+            >
+              <Text style={styles.primaryText}>Update Password</Text>
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.orderCard}>
-            <View style={styles.profileSectionHeader}>
-              <Text style={styles.sectionTitle}>Appearance</Text>
-            </View>
-            <Text style={styles.profileLabel}>Theme</Text>
-            <View style={styles.orderTypeRow}>
-              <TouchableOpacity
-                style={[styles.orderTypeButton, appTheme === "light" && styles.orderTypeActive]}
-                onPress={() => setAppTheme("light")}
-              >
-                <Text style={styles.orderTypeText}>LIGHT</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.orderTypeButton, appTheme === "dark" && styles.orderTypeActive]}
-                onPress={() => setAppTheme("dark")}
-              >
-                <Text style={styles.orderTypeText}>DARK</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </>
       ) : null}
@@ -251,6 +241,126 @@ export default function ProfileScreen({
           formatDateTime={formatDateTime}
         />
       ) : null}
+
+      {profileTab === "theme" ? (
+        <View style={styles.orderCard}>
+          <View style={styles.profileSectionHeader}>
+            <Text style={styles.sectionTitle}>Theme</Text>
+          </View>
+          <Text style={styles.profileLabel}>Appearance</Text>
+          <View style={styles.orderTypeRow}>
+            <TouchableOpacity
+              style={[styles.orderTypeButton, appTheme === "light" && styles.orderTypeActive]}
+              onPress={() => setAppTheme("light")}
+            >
+              <Text style={styles.orderTypeText}>LIGHT</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.orderTypeButton, appTheme === "dark" && styles.orderTypeActive]}
+              onPress={() => setAppTheme("dark")}
+            >
+              <Text style={styles.orderTypeText}>DARK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+
+      <Modal
+        visible={passwordModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPasswordModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Update Password</Text>
+              <TouchableOpacity onPress={() => setPasswordModalOpen(false)}>
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <TextInput
+                style={styles.input}
+                placeholder="Current password"
+                value={passwordForm.currentPassword}
+                onChangeText={(value) => setPasswordForm((s) => ({ ...s, currentPassword: value }))}
+                secureTextEntry
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="New password"
+                value={passwordForm.newPassword}
+                onChangeText={(value) => setPasswordForm((s) => ({ ...s, newPassword: value }))}
+                secureTextEntry
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm new password"
+                value={passwordForm.confirmPassword}
+                onChangeText={(value) => setPasswordForm((s) => ({ ...s, confirmPassword: value }))}
+                secureTextEntry
+              />
+              {passwordMsg ? <Text style={styles.info}>{passwordMsg}</Text> : null}
+              <TouchableOpacity
+                style={styles.placeOrderButton}
+                onPress={async () => {
+                  await handleChangePassword();
+                  setPasswordModalOpen(false);
+                }}
+                disabled={passwordBusy}
+              >
+                {passwordBusy ? (
+                  <ActivityIndicator color="#0A0A0A" />
+                ) : (
+                  <Text style={styles.primaryText}>Save Password</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={paymentPickerOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPaymentPickerOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Payment Method</Text>
+              <TouchableOpacity onPress={() => setPaymentPickerOpen(false)}>
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              {safeSavedCards.length ? (
+                safeSavedCards.map((card) => (
+                  <TouchableOpacity
+                    key={String(card._id)}
+                    style={[
+                      styles.savedCardItem,
+                      card.isDefault && styles.savedCardItemActive
+                    ]}
+                    onPress={() => onSelectProfilePaymentMethod(card._id)}
+                  >
+                    <Text style={styles.staffOrderTitle}>
+                      {card.brand || "Card"} **** {card.last4}
+                    </Text>
+                    <Text style={styles.staffOrderMeta}>
+                      Exp {card.expiryMonth}/{card.expiryYear}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.helperText}>No saved cards. Add one from My Payments.</Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

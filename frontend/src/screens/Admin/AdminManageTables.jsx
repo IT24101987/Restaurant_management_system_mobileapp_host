@@ -41,6 +41,7 @@ export default function AdminManageTables({
   styles,
   isAdminDark
 }) {
+  const [tablesTab, setTablesTab] = useState("bookings");
   const [bookingFilter, setBookingFilter] = useState("active");
   const statPalette = [
     { light: styles.adminStatOrange, dark: styles.adminStatOrangeDark },
@@ -125,6 +126,7 @@ export default function AdminManageTables({
   const totalTables = adminTables.length;
   const bookedTables = bookedTableIds.size;
   const freeTables = Math.max(totalTables - bookedTables, 0);
+
 
   const renderSeatMap = () => (
     <View style={styles.adminSection}>
@@ -398,6 +400,29 @@ export default function AdminManageTables({
         </View>
       </View>
 
+      <View style={styles.profileTabs}>
+        {[
+          { key: "bookings", label: "Bookings" },
+          { key: "tables", label: "Added Tables" },
+          { key: "seatmap", label: "Seat Map" }
+        ].map((tab) => {
+          const active = tablesTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.profileTabButton, active && styles.profileTabButtonActive]}
+              onPress={() => setTablesTab(tab.key)}
+            >
+              <Text style={[styles.profileTabText, active && styles.profileTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {tablesTab === "bookings" ? (
+      <>
       {/* -- TABLE BOOKINGS SECTION -- */}
       <View style={[styles.adminSectionHeader, { marginTop: 16 }]}>
         <Text style={[styles.adminSectionTitle, isAdminDark && styles.adminSectionTitleDark]}>
@@ -548,6 +573,11 @@ export default function AdminManageTables({
           );
         })
       )}
+      </>
+      ) : null}
+
+      {tablesTab === "tables" ? (
+      <>
       {/* Added tables come after bookings */}
       <View style={[styles.adminSectionHeader, { marginTop: 16 }]}>
         <Text style={[styles.adminSectionTitle, isAdminDark && styles.adminSectionTitleDark]}>
@@ -555,9 +585,11 @@ export default function AdminManageTables({
         </Text>
       </View>
       {renderAddedTables()}
+      </>
+      ) : null}
 
       {/* -- LIVE SEAT MAP -- */}
-      {renderSeatMap()}
+      {tablesTab === "seatmap" ? renderSeatMap() : null}
     </View>
   );
 }

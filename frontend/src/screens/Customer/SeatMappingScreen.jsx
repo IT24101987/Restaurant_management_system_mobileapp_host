@@ -143,11 +143,34 @@ export default function SeatMappingScreen({
         activeCustomerTableBookings.map((order) => {
           const orderStatus = String(order.status || "").toLowerCase();
           const canCancel = !["cancelled", "delivered", "served"].includes(orderStatus);
+          const statusLabel = ["cancelled", "served", "delivered"].includes(orderStatus)
+            ? "Finished"
+            : (order.status || "Unknown");
+          const statusBadgeStyle = [
+            styles.staffOrderStatusBadge,
+            orderStatus === "new" && styles.staffOrderStatusBadgeNew,
+            orderStatus === "preparing" && styles.staffOrderStatusBadgePreparing,
+            orderStatus === "ready" && styles.staffOrderStatusBadgeReady,
+            orderStatus === "served" && styles.staffOrderStatusBadgeServed,
+            orderStatus === "delivered" && styles.staffOrderStatusBadgeDelivered,
+            orderStatus === "cancelled" && styles.staffOrderStatusBadgeFinished
+          ];
+          const statusTextStyle = [
+            styles.staffOrderStatus,
+            orderStatus === "new" && styles.staffOrderStatusTextNew,
+            orderStatus === "preparing" && styles.staffOrderStatusTextPreparing,
+            orderStatus === "ready" && styles.staffOrderStatusTextReady,
+            orderStatus === "served" && styles.staffOrderStatusTextServed,
+            orderStatus === "delivered" && styles.staffOrderStatusTextDelivered,
+            ["cancelled", "served", "delivered"].includes(orderStatus) && styles.staffOrderStatusTextFinished
+          ];
           return (
             <View key={String(order._id || order.orderNumber)} style={styles.staffOrderCard}>
               <View style={styles.staffOrderHeader}>
                 <Text style={styles.staffOrderTitle}>{order.orderNumber || "Booking"}</Text>
-                <Text style={styles.staffOrderStatus}>{order.status || "Unknown"}</Text>
+                <View style={statusBadgeStyle}>
+                  <Text style={statusTextStyle}>{statusLabel}</Text>
+                </View>
               </View>
               <Text style={styles.staffOrderMeta}>
                 Table: {order.tableNumber || order.tableId?.tableNo || "-"} - Seats: {order.seatCount || "-"}
@@ -161,10 +184,10 @@ export default function SeatMappingScreen({
               {canCancel ? (
                 <View style={styles.orderActionRow}>
                   <TouchableOpacity
-                    style={styles.actionGhost}
+                    style={styles.dangerButton}
                     onPress={() => cancelCustomerOrder(order._id)}
                   >
-                    <Text style={styles.actionGhostText}>Cancel Booking</Text>
+                    <Text style={styles.dangerButtonText}>Cancel Booking</Text>
                   </TouchableOpacity>
                 </View>
               ) : null}

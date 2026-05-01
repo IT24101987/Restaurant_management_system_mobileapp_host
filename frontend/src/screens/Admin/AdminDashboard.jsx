@@ -177,6 +177,14 @@ export default function AdminDashboard({
   isAdminDark,
   theme
 }) {
+  const [adminUserRoleFilter, setAdminUserRoleFilter] = React.useState("all");
+  const managerCount = adminUsers.filter((u) => String(u?.role || "").toLowerCase() === "manager").length;
+  const cashierCount = adminUsers.filter((u) => String(u?.role || "").toLowerCase() === "cashier").length;
+  const filteredAdminUsers = adminUsers.filter((user) => {
+    if (adminUserRoleFilter === "all") return true;
+    return String(user?.role || "").toLowerCase() === adminUserRoleFilter;
+  });
+
   const renderDashboard = () => (
     <View style={styles.adminSection}>
       <View style={styles.adminSectionHeader}>
@@ -370,12 +378,41 @@ export default function AdminDashboard({
                 <Text style={styles.adminGhostText}>{adminUsersBusy ? "Refreshing..." : "Refresh"}</Text>
               </TouchableOpacity>
             </View>
-            {adminUsers.map((user) => (
+            <View style={styles.adminStatsRow}>
+              {[
+                { label: "Managers", value: managerCount },
+                { label: "Cashiers", value: cashierCount }
+              ].map((item) => (
+                <View key={item.label} style={[styles.adminStatCard, isAdminDark && styles.adminStatCardDark]}>
+                  <Text style={[styles.adminStatLabel, isAdminDark && styles.adminStatLabelDark]}>{item.label}</Text>
+                  <Text style={[styles.adminStatValue, isAdminDark && styles.adminStatValueDark]}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.adminFilterRow}>
+              {["all", "admin", "manager", "cashier", "staff", "customer"].map((role) => (
+                <TouchableOpacity
+                  key={role}
+                  style={[
+                    styles.adminPill,
+                    adminUserRoleFilter === role && styles.adminPillActive,
+                    isAdminDark && styles.adminPillDark,
+                    isAdminDark && adminUserRoleFilter === role && styles.adminPillActiveDark
+                  ]}
+                  onPress={() => setAdminUserRoleFilter(role)}
+                >
+                  <Text style={[styles.adminPillText, isAdminDark && styles.adminPillTextDark]}>
+                    {role.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {filteredAdminUsers.map((user) => (
               <View key={String(user._id)} style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
                 <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>{user.email}</Text>
                 <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>{user.firstname} {user.lastname} - {user.role}</Text>
                 <View style={styles.adminActionRow}>
-                  {["admin", "manager", "staff", "customer"].map(role => (
+                  {["admin", "manager", "cashier", "staff", "customer"].map(role => (
                     <TouchableOpacity key={role} style={[styles.adminActionButton, user.role === role && styles.adminActionButtonActive]} onPress={() => updateAdminUserRole(user._id, role)}>
                       <Text style={styles.adminActionText}>{role}</Text>
                     </TouchableOpacity>

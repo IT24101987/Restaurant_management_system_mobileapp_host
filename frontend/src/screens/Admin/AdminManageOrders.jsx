@@ -1,4 +1,4 @@
-﻿import React from "react";
+﻿import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -25,6 +25,7 @@ export default function AdminManageOrders({
   styles,
   isAdminDark
 }) {
+  const [ordersTab, setOrdersTab] = useState("all");
   const DELIVERY_FEE = 250;
   const resolveSubtotal = (order) => {
     if (!order) return 0;
@@ -47,6 +48,11 @@ export default function AdminManageOrders({
       </Text>
     </View>
   );
+
+  useEffect(() => {
+    setAdminOrderStatusFilter(ordersTab === "active" ? "active" : "all");
+  }, [ordersTab, setAdminOrderStatusFilter]);
+
 
   return (
     <View style={styles.adminSection}>
@@ -91,6 +97,25 @@ export default function AdminManageOrders({
           </View>
         ))}
       </View>
+      <View style={styles.profileTabs}>
+        {[
+          { key: "all", label: "All Orders" },
+          { key: "active", label: "Active Orders" }
+        ].map((tab) => {
+          const active = ordersTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.profileTabButton, active && styles.profileTabButtonActive]}
+              onPress={() => setOrdersTab(tab.key)}
+            >
+              <Text style={[styles.profileTabText, active && styles.profileTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       <View style={styles.adminFilterRow}>
         {["all", "table", "delivery", "pickup"].map((type) => (
           <TouchableOpacity
@@ -108,35 +133,53 @@ export default function AdminManageOrders({
             </Text>
           </TouchableOpacity>
         ))}
-        {["all", "active"].map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.adminPill,
-              adminOrderStatusFilter === status && styles.adminPillActive,
-              isAdminDark && styles.adminPillDark,
-              isAdminDark && adminOrderStatusFilter === status && styles.adminPillActiveDark
-            ]}
-            onPress={() => setAdminOrderStatusFilter(status)}
-          >
-            <Text style={[styles.adminPillText, isAdminDark && styles.adminPillTextDark]}>
-              {status.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-        ))}
       </View>
       {adminOrders
         .filter((order) =>
           adminOrderTypeFilter === "all" ? true : String(order.orderType) === adminOrderTypeFilter
         )
-        .filter((order) =>
-          adminOrderStatusFilter === "active" ? adminActiveStatuses.includes(order.status) : true
-        )
+        .filter((order) => {
+          if (adminOrderStatusFilter !== "active") return true;
+          const normalizedStatus = String(order?.status || "").trim().toLowerCase();
+          const normalizedActive = Array.isArray(adminActiveStatuses)
+            ? adminActiveStatuses.map((status) => String(status || "").trim().toLowerCase())
+            : [];
+          if (normalizedActive.length) {
+            return normalizedActive.includes(normalizedStatus);
+          }
+          return ["new", "preparing", "ready", "pending", "confirmed", "processing"].includes(
+            normalizedStatus
+          );
+        })
         .map((order) => {
           const actions = getOrderActions(order);
           const itemsText = (order.items || [])
             .map((item) => `${item.name || "Item"} x${item.quantity || 0}`)
             .join(", ");
+          const rawStatus = String(order.status || "").toLowerCase();
+          const statusLabel = ["cancelled", "served", "delivered"].includes(rawStatus)
+            ? "Finished"
+            : (order.status || "Unknown");
+          const statusPillStyle = [
+            styles.adminStatusPill,
+            isAdminDark && styles.adminStatusPillDark,
+            rawStatus === "new" && styles.adminStatusPillNew,
+            rawStatus === "preparing" && styles.adminStatusPillPreparing,
+            rawStatus === "ready" && styles.adminStatusPillReady,
+            rawStatus === "served" && styles.adminStatusPillServed,
+            rawStatus === "delivered" && styles.adminStatusPillDelivered,
+            rawStatus === "cancelled" && styles.adminStatusPillFinished
+          ];
+          const statusTextStyle = [
+            styles.adminStatusText,
+            isAdminDark && styles.adminStatusTextDark,
+            rawStatus === "new" && styles.adminStatusTextNew,
+            rawStatus === "preparing" && styles.adminStatusTextPreparing,
+            rawStatus === "ready" && styles.adminStatusTextReady,
+            rawStatus === "served" && styles.adminStatusTextServed,
+            rawStatus === "delivered" && styles.adminStatusTextDelivered,
+            rawStatus === "cancelled" && styles.adminStatusTextFinished
+          ];
           const isTable = String(order.orderType || "").toLowerCase() === "table";
           const isDelivery = String(order.orderType || "").toLowerCase() === "delivery";
           const subtotal = resolveSubtotal(order);
@@ -152,9 +195,11 @@ export default function AdminManageOrders({
                 <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
                   {order.orderNumber || "Order"}
                 </Text>
-                <Text style={[styles.adminStatusText, isAdminDark && styles.adminStatusTextDark]}>
-                  {order.status || "Unknown"}
-                </Text>
+                <View style={statusPillStyle}>
+                  <Text style={statusTextStyle}>
+                    {statusLabel}
+                  </Text>
+                </View>
               </View>
               {renderMetaRow(
                 "receipt-outline",
@@ -250,5 +295,7 @@ export default function AdminManageOrders({
     </View>
   );
 }
+
+
 
 

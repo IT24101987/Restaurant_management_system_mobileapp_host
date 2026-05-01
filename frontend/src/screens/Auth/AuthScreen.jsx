@@ -55,19 +55,21 @@ export default function AuthScreen({
       <SafeAreaView style={styles.safeArea}>
         <ImageBackground
           source={{
-            uri: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1400&q=80"
+            uri: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1400&q=80"
           }}
           style={styles.background}
           imageStyle={styles.backgroundImage}
         >
-          <View style={styles.backgroundOverlay} />
+          <View style={styles.authBackgroundOverlay} />
           <ScrollView contentContainerStyle={styles.authContainer}>
-            <Text style={styles.brand}>THE GOLDEN FORK</Text>
-            <Text style={styles.heroTitle}>Restaurant Mobile</Text>
-            <Text style={styles.heroSubtitle}>{authTitle}</Text>
-            {authMode === "login" && loginScope === "admin" ? (
-              <Text style={styles.authBadge}>Admin / Staff Login</Text>
-            ) : null}
+            <View>
+              <Text style={styles.brand}>THE GOLDEN FORK</Text>
+              <Text style={styles.heroTitle}>Restaurant Mobile</Text>
+              <Text style={styles.heroSubtitle}>{authTitle}</Text>
+              {authMode === "login" && loginScope === "admin" ? (
+                <Text style={styles.authBadge}>Admin / Staff Login</Text>
+              ) : null}
+            </View>
 
             <View style={styles.authCard}>
               <View style={styles.switchRow}>

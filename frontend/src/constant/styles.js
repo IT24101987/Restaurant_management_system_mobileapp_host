@@ -18,9 +18,9 @@ const darkTheme = {
   panelBg: "#121212",
   panelItemBg: "rgba(255, 255, 255, 0.02)",
   chipBg: "rgba(0, 0, 0, 0.2)",
-  cardBg: "rgba(20, 20, 20, 0.85)",
-  tabsBg: "rgba(20, 20, 20, 0.7)",
-  navBg: "#1B1E23",
+  cardBg: "#0E0E0E",
+  tabsBg: "rgba(0, 0, 0, 0.7)",
+  navBg: "#0B0D11",
   navActive: "#F58A3B",
   navBubbleBorder: "#2A2E35",
   modalOverlay: "rgba(0, 0, 0, 0.6)",
@@ -28,26 +28,26 @@ const darkTheme = {
 };
 
 const lightTheme = {
-  bg: "#FFF6F0",
-  overlay: "rgba(255, 244, 238, 0.9)",
+  bg: "#e4e4e4",
+  overlay: "rgba(255, 254, 254, 0.9)",
   text: "#2D201A",
   textMuted: "#7D5B4A",
-  accent: "#F58A3B",
+  accent: "#f38a40",
   accentStrong: "#F26A1B",
   accentSoft: "rgba(245, 138, 59, 0.2)",
   accentTint: "rgba(245, 138, 59, 0.12)",
   accentFade: "rgba(245, 138, 59, 0.08)",
   border: "#F3DDCD",
-  borderStrong: "#EBCDBA",
+  borderStrong: "#ab9999",
   borderAccent: "rgba(245, 138, 59, 0.35)",
-  inputBg: "#FFFFFF",
-  helperBg: "#FFE8D8",
-  panelBg: "#FFFFFF",
+  inputBg: "#ffffff",
+  helperBg: "#dcd9d7",
+  panelBg: "#ffffff",
   panelItemBg: "#FFFFFF",
   chipBg: "#FFFFFF",
-  cardBg: "#FFFFFF",
+  cardBg: "#ffffff",
   tabsBg: "#FFE8D8",
-  navBg: "#FFFFFF",
+  navBg: "#f8f6f4",
   navActive: "#F58A3B",
   navBubbleBorder: "#F3DDCD",
   modalOverlay: "rgba(45, 32, 26, 0.2)",
@@ -69,15 +69,20 @@ const createStyles = (theme) => StyleSheet.create({
     flex: 1
   },
   backgroundImage: {
-    opacity: 0.15
+    opacity: 0.55
   },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.overlay
   },
+  authBackgroundOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(18, 18, 18, 0.12)"
+  },
   authContainer: {
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingTop: 22,
+    paddingBottom: 40,
     gap: 12
   },
   selectedDishCard: {
@@ -436,20 +441,20 @@ const createStyles = (theme) => StyleSheet.create({
   },
   adminSafeArea: {
     flex: 1,
-    backgroundColor: "#FFF6ED"
+    backgroundColor: "#FFFFFF"
   },
   adminSafeAreaDark: {
     backgroundColor: "#0F0A07"
   },
   adminBackgroundImage: {
-    opacity: 0.08
+    opacity: 0
   },
   adminBackgroundImageDark: {
     opacity: 0.2
   },
   adminBackgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 245, 238, 0.95)"
+    backgroundColor: "#FFFFFF"
   },
   adminBackgroundOverlayDark: {
     backgroundColor: "rgba(12, 8, 6, 0.92)"
@@ -461,7 +466,8 @@ const createStyles = (theme) => StyleSheet.create({
   adminWrapper: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 16
+    paddingTop: 16,
+    backgroundColor: "#FFFFFF"
   },
   adminSidebar: {
     width: 120,
@@ -527,7 +533,7 @@ const createStyles = (theme) => StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
+    backgroundColor: "#F8EFE7",
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 16,
@@ -698,16 +704,16 @@ const createStyles = (theme) => StyleSheet.create({
     flexGrow: 1,
     flexBasis: "48%",
     minWidth: 140,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#fdfafa",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#FFE1C6",
-    borderTopColor: "#FFF1E6",
-    borderBottomColor: "#FECBA8",
+    borderColor: "#325f99",
+    borderTopColor: "#3a6aa8",
+    borderBottomColor: "#405f87",
     padding: 12,
     gap: 6,
-    shadowColor: "#F97316",
-    shadowOpacity: 0.14,
+    shadowColor: "#20345d",
+    shadowOpacity: 0.07,
     shadowRadius: 14,
     elevation: 4
   },
@@ -770,16 +776,16 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#D6B79F"
   },
   adminPanel: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffff",
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#FFE2C7",
-    shadowColor: "#F97316",
-    shadowOpacity: 0.1,
+    borderColor: "#E4EAF2",
+    shadowColor: "#111827",
+    shadowOpacity: 0.06,
     shadowRadius: 12,
     elevation: 4,
-    gap: 10
+    gap: 20
   },
   adminPanelDark: {
     backgroundColor: "rgba(24, 14, 9, 0.92)",
@@ -896,22 +902,26 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#FFE6CF"
   },
   adminCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    backgroundColor: "#fffefd",
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#FFE2C7",
-    borderTopColor: "#FFF1E6",
-    borderBottomColor: "#FECBA8",
-    shadowColor: "#F97316",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
+    borderColor: "#E4EAF2",
+    borderLeftWidth: 4,
+    borderLeftColor: "#e6731aaa",
+    borderTopColor: "#EA7A22",
+    borderBottomColor: "#E4EAF2",
+    shadowColor: "#111827",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
     gap: 8
   },
   adminCardDark: {
     backgroundColor: "rgba(24, 14, 9, 0.92)",
-    borderColor: "rgba(249, 115, 22, 0.2)"
+    borderColor: "rgba(249, 115, 22, 0.2)",
+    borderLeftColor: "#34D399"
   },
   adminCardHeader: {
     flexDirection: "row",
@@ -926,8 +936,8 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#FFE6CF"
   },
   adminCardMeta: {
-    color: "#8A5B3C",
-    fontSize: 12
+    color: "#5a3720",
+    fontSize: 13
   },
   adminCardMetaDark: {
     color: "#D8B99E"
@@ -974,12 +984,67 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#FFE6CF"
   },
   adminStatusText: {
-    color: "#9A3412",
+    color: "#047857",
     fontWeight: "700",
-    fontSize: 12
+    fontSize: 11,
+    textTransform: "uppercase"
   },
   adminStatusTextDark: {
-    color: "#FDBA74"
+    color: "#6EE7B7"
+  },
+  adminStatusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.35)"
+  },
+  adminStatusPillDark: {
+    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    borderColor: "rgba(52, 211, 153, 0.45)"
+  },
+  adminStatusPillNew: {
+    backgroundColor: "rgba(59, 130, 246, 0.14)",
+    borderColor: "rgba(59, 130, 246, 0.42)"
+  },
+  adminStatusPillPreparing: {
+    backgroundColor: "rgba(249, 115, 22, 0.16)",
+    borderColor: "rgba(249, 115, 22, 0.45)"
+  },
+  adminStatusPillReady: {
+    backgroundColor: "rgba(168, 85, 247, 0.15)",
+    borderColor: "rgba(168, 85, 247, 0.44)"
+  },
+  adminStatusPillServed: {
+    backgroundColor: "rgba(22, 163, 74, 0.14)",
+    borderColor: "rgba(22, 163, 74, 0.44)"
+  },
+  adminStatusPillDelivered: {
+    backgroundColor: "rgba(20, 184, 166, 0.14)",
+    borderColor: "rgba(20, 184, 166, 0.44)"
+  },
+  adminStatusPillFinished: {
+    backgroundColor: "rgba(200, 16, 35, 0.54)",
+    borderColor: "rgba(137, 43, 43, 0.42)"
+  },
+  adminStatusTextNew: {
+    color: "#1D4ED8"
+  },
+  adminStatusTextPreparing: {
+    color: "#C2410C"
+  },
+  adminStatusTextReady: {
+    color: "#7E22CE"
+  },
+  adminStatusTextServed: {
+    color: "#15803D"
+  },
+  adminStatusTextDelivered: {
+    color: "#0F766E"
+  },
+  adminStatusTextFinished: {
+    color: "#334155"
   },
   adminActionRow: {
     flexDirection: "row",
@@ -997,16 +1062,16 @@ const createStyles = (theme) => StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "#FFF1E6",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#FECBA8"
+    borderColor: "#EA7A22"
   },
   adminActionButtonDark: {
     backgroundColor: "rgba(249, 115, 22, 0.16)",
     borderColor: "rgba(249, 115, 22, 0.45)"
   },
   adminActionText: {
-    color: "#9A3412",
+    color: "#EA7A22",
     fontWeight: "700",
     fontSize: 12
   },
@@ -1014,7 +1079,7 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#FDBA74"
   },
   adminPrimaryButton: {
-    backgroundColor: "#F97316",
+    backgroundColor: "#EA7A22",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -1033,18 +1098,18 @@ const createStyles = (theme) => StyleSheet.create({
   },
   adminGhostButton: {
     borderWidth: 1,
-    borderColor: "#FDBA74",
+    borderColor: "#EA7A22",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: "#FFF1E6"
+    backgroundColor: "#FFFFFF"
   },
   adminGhostButtonDark: {
     borderColor: "rgba(249, 115, 22, 0.45)",
     backgroundColor: "rgba(249, 115, 22, 0.16)"
   },
   adminGhostText: {
-    color: "#9A3412",
+    color: "#EA7A22",
     fontWeight: "700",
     fontSize: 12
   },
@@ -1090,6 +1155,29 @@ const createStyles = (theme) => StyleSheet.create({
     borderColor: "rgba(249, 115, 22, 0.28)",
     backgroundColor: "rgba(24, 14, 9, 0.9)",
     color: "#FFE6CF"
+  },
+  adminImagePreviewWrap: {
+    width: "100%",
+    height: 170,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFD7BA",
+    overflow: "hidden",
+    marginBottom: 10
+  },
+  adminImagePreview: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover"
+  },
+  adminImagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF8EE"
+  },
+  adminImageActionRow: {
+    gap: 10,
+    marginBottom: 10
   },
   adminDropdown: {
     borderWidth: 1,
@@ -1139,8 +1227,8 @@ const createStyles = (theme) => StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#FDBA74",
-    backgroundColor: "#FFF1E6",
+    borderColor: "#EA7A22",
+    backgroundColor: "#FFFFFF",
     flexGrow: 0,
     minWidth: 0,
     alignItems: "center"
@@ -1150,15 +1238,15 @@ const createStyles = (theme) => StyleSheet.create({
     backgroundColor: "rgba(249, 115, 22, 0.16)"
   },
   adminPillActive: {
-    borderColor: "#F97316",
-    backgroundColor: "#FFE2C7"
+    borderColor: "#EA7A22",
+    backgroundColor: "#FFE7D1"
   },
   adminPillActiveDark: {
     borderColor: "rgba(249, 115, 22, 0.9)",
     backgroundColor: "rgba(249, 115, 22, 0.32)"
   },
   adminPillText: {
-    color: "#9A3412",
+    color: "#EA7A22",
     fontWeight: "700",
     fontSize: 10
   },
@@ -1267,12 +1355,12 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#D8B99E"
   },
   adminBottomNav: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f0efef",
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#FFE2C7",
-    borderTopColor: "#FFF1E6",
-    borderBottomColor: "#FECBA8",
+    borderColor: "#f5f3f2",
+    borderTopColor: "#eeebe8",
+    borderBottomColor: "#fafafa",
     paddingVertical: 8,
     paddingHorizontal: 10,
     marginHorizontal: 12,
@@ -1523,7 +1611,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   staffBadge: {
     backgroundColor: "rgba(245, 138, 59, 0.25)",
-    color: "#F58A3B",
+    color: "#a86637",
     fontWeight: "700",
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -1549,15 +1637,19 @@ const createStyles = (theme) => StyleSheet.create({
   },
   staffOrderCard: {
     backgroundColor: theme.cardBg,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 15,
     borderWidth: 1,
     borderColor: theme.border,
+    borderLeftWidth: 4,
+    borderLeftColor: "#679e8c",
+    borderRightWidth: 4,
+    borderRightColor: "#679e8c",
     marginBottom: 12,
     gap: 8,
     shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3
   },
@@ -1580,11 +1672,53 @@ const createStyles = (theme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.borderAccent
   },
+  staffOrderStatusBadgeNew: {
+    backgroundColor: "rgba(59, 130, 246, 0.14)",
+    borderColor: "rgba(59, 130, 246, 0.4)"
+  },
+  staffOrderStatusBadgePreparing: {
+    backgroundColor: "rgba(249, 115, 22, 0.16)",
+    borderColor: "rgba(249, 115, 22, 0.45)"
+  },
+  staffOrderStatusBadgeReady: {
+    backgroundColor: "rgba(168, 85, 247, 0.14)",
+    borderColor: "rgba(168, 85, 247, 0.4)"
+  },
+  staffOrderStatusBadgeServed: {
+    backgroundColor: "rgba(22, 163, 74, 0.14)",
+    borderColor: "rgba(22, 163, 74, 0.4)"
+  },
+  staffOrderStatusBadgeDelivered: {
+    backgroundColor: "rgba(20, 184, 166, 0.14)",
+    borderColor: "rgba(20, 184, 166, 0.4)"
+  },
+  staffOrderStatusBadgeFinished: {
+    backgroundColor: "rgba(100, 116, 139, 0.16)",
+    borderColor: "rgba(100, 116, 139, 0.42)"
+  },
   staffOrderStatus: {
     color: theme.accentStrong,
     fontWeight: "700",
     fontSize: 11,
     textTransform: "capitalize"
+  },
+  staffOrderStatusTextNew: {
+    color: "#1D4ED8"
+  },
+  staffOrderStatusTextPreparing: {
+    color: "#C2410C"
+  },
+  staffOrderStatusTextReady: {
+    color: "#7E22CE"
+  },
+  staffOrderStatusTextServed: {
+    color: "#15803D"
+  },
+  staffOrderStatusTextDelivered: {
+    color: "#0F766E"
+  },
+  staffOrderStatusTextFinished: {
+    color: "#334155"
   },
   staffOrderInfoRow: {
     flexDirection: "row",
@@ -1604,7 +1738,11 @@ const createStyles = (theme) => StyleSheet.create({
   },
   staffOrderMeta: {
     color: theme.textMuted,
-    fontSize: 12
+    fontSize: 12,
+    backgroundColor: theme.accentTint,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7
   },
   staffActionRow: {
     flexDirection: "row",
@@ -1649,9 +1787,14 @@ const createStyles = (theme) => StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
-    backgroundColor: "rgba(255, 246, 240, 0.98)",
+    backgroundColor: "rgba(236, 226, 217, 0.98)",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(245, 138, 59, 0.25)"
+    borderBottomColor: "rgba(0, 0, 0, 0.93)",
+    shadowColor: "#000000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
   },
   topbarFixedDark: {
     backgroundColor: "rgba(18, 18, 18, 0.96)",
@@ -1736,6 +1879,15 @@ const createStyles = (theme) => StyleSheet.create({
   paymentNotice: {
     marginBottom: 10
   },
+  paymentMethodInlineCard: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.inputBg,
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 10,
+    gap: 6
+  },
   cardBlock: {
     marginBottom: 12
   },
@@ -1762,7 +1914,7 @@ const createStyles = (theme) => StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginBottom: 16,
-    backgroundColor: theme.tabsBg,
+    backgroundColor: "#fffcfc",
     borderRadius: 14,
     padding: 6,
     borderWidth: 1,
@@ -1775,7 +1927,7 @@ const createStyles = (theme) => StyleSheet.create({
     alignItems: "center"
   },
   profileTabButtonActive: {
-    backgroundColor: "rgba(245, 138, 59, 0.25)"
+    backgroundColor: "#F97316"
   },
   profileTabText: {
     color: theme.textMuted,
@@ -1783,7 +1935,7 @@ const createStyles = (theme) => StyleSheet.create({
     fontSize: 11
   },
   profileTabTextActive: {
-    color: theme.accent
+    color: "#ffffff"
   },
   profileIconLarge: {
     width: 72,
@@ -1902,10 +2054,11 @@ const createStyles = (theme) => StyleSheet.create({
   profileCard: {
     backgroundColor: theme.cardBg,
     borderRadius: 16,
-    padding: 16,
+    padding: 20,
     marginBottom: 18,
     borderWidth: 1,
     borderColor: theme.border
+    
   },
   profileLabel: {
     color: theme.textMuted,
@@ -2034,6 +2187,85 @@ const createStyles = (theme) => StyleSheet.create({
     gap: 8,
     marginBottom: 12
   },
+  orderFiltersPanel: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.cardBg,
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 12
+  },
+  orderFiltersLabel: {
+    color: theme.accent,
+    fontWeight: "700",
+    fontSize: 12,
+    marginBottom: 6
+  },
+  menuSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.inputBg,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 14,
+    gap: 8
+  },
+  menuSearchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.text,
+    paddingVertical: 0
+  },
+  menuSearchFilterBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.accentTint
+  },
+  menuCategoryRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+    paddingRight: 8
+  },
+  menuCategoryCard: {
+    width: 74,
+    minHeight: 70,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.chipBg,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6
+  },
+  menuCategoryCardActive: {
+    borderColor: theme.accent,
+    backgroundColor: theme.accentSoft
+  },
+  menuCategoryIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.accentTint,
+    borderWidth: 1,
+    borderColor: theme.borderAccent,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  menuCategoryText: {
+    color: theme.textMuted,
+    fontSize: 10,
+    fontWeight: "700",
+    textAlign: "center"
+  },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -2057,38 +2289,113 @@ const createStyles = (theme) => StyleSheet.create({
     color: theme.accent
   },
   trendingRow: {
-    gap: 12,
-    paddingBottom: 10
+    gap: 14,
+    paddingBottom: 12
   },
   trendingCard: {
-    width: 240,
+    width: 270,
     backgroundColor: theme.cardBg,
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: theme.border,
-    overflow: "hidden"
+    borderLeftWidth: 4,
+    borderLeftColor: theme.accent,
+     borderRightWidth: 4,
+    borderRightColor: theme.accent,
+     borderBottomWidth: 4,
+    borderBottomColor: theme.accent,
+    overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4
+  },
+  trendingTopGlow: {
+    height: 5,
+    backgroundColor: theme.accent
   },
   trendingBody: {
-    padding: 12,
-    gap: 6
+    padding: 14,
+    gap: 8
+  },
+  trendingHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
   },
   trendingTitle: {
-    color: theme.accent,
+    color: theme.text,
     fontWeight: "700",
-    fontSize: 15
+    fontSize: 16,
+    flex: 1
   },
   trendingMeta: {
     color: theme.textMuted,
     fontSize: 12
   },
+  trendingMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  trendingChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.accentFade
+  },
+  trendingChipText: {
+    color: theme.textMuted,
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  trendingChipPrice: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.borderAccent,
+    backgroundColor: theme.accentSoft
+  },
+  trendingChipPriceText: {
+    color: theme.accentStrong,
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  trendingHotBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(220, 38, 38, 0.5)",
+    backgroundColor: "rgba(220, 38, 38, 0.14)"
+  },
+  trendingHotBadgeText: {
+    color: "#DC2626",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4
+  },
   orderMiniButton: {
-    marginTop: 8,
-    alignItems: "flex-start"
+    marginTop: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.borderAccent,
+    backgroundColor: theme.accentTint,
+    paddingVertical: 8,
+    paddingHorizontal: 12
   },
   orderMiniText: {
     color: theme.accent,
     fontWeight: "700",
-    fontSize: 12
+    fontSize: 12,
+    letterSpacing: 0.3
   },
   seatMapLegend: {
     flexDirection: "row",
@@ -2159,12 +2466,19 @@ const createStyles = (theme) => StyleSheet.create({
   },
   seatMapCard: {
     backgroundColor: theme.cardBg,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: theme.border,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
     padding: 14,
     marginBottom: 12,
-    gap: 6
+    gap: 8,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2
   },
   seatMapHeader: {
     flexDirection: "row",
@@ -2199,9 +2513,15 @@ const createStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.cardBg,
     borderWidth: 1,
     borderColor: theme.border,
-    borderRadius: 14,
+  
+    borderRadius: 18,
     overflow: "hidden",
-    marginBottom: 12
+    marginBottom: 14,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3
   },
   cardImage: {
     width: "100%",
@@ -2220,18 +2540,22 @@ const createStyles = (theme) => StyleSheet.create({
   menuMetaStrip: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: theme.accentTint,
-    paddingVertical: 6,
-    paddingHorizontal: 10
+    backgroundColor: theme.accentFade,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+    paddingVertical: 8,
+    paddingHorizontal: 12
   },
   menuMetaText: {
-    color: theme.text,
-    fontSize: 11,
+    color: theme.accent,
+    fontSize: 10,
     fontWeight: "700"
   },
   menuContent: {
-    padding: 12,
-    gap: 6
+    padding: 14,
+    gap: 8
   },
   menuTitle: {
     fontSize: 16,
@@ -2248,27 +2572,38 @@ const createStyles = (theme) => StyleSheet.create({
   },
   statusBadge: {
     alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1
   },
   statusOk: {
-    backgroundColor: "#D1FAE5"
+    backgroundColor: "rgba(22, 163, 74, 0.14)",
+    borderColor: "rgba(22, 163, 74, 0.4)"
   },
   statusNo: {
-    backgroundColor: "#FEE2E2"
+    backgroundColor: "rgba(220, 38, 38, 0.14)",
+    borderColor: "rgba(220, 38, 38, 0.4)"
   },
   statusText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#1F2937"
+    color: theme.text
   },
   orderCard: {
     backgroundColor: theme.cardBg,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
+    marginBottom: 9,
     borderWidth: 1,
-    borderColor: theme.border
+    borderColor: theme.border,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+    shadowColor: "#000000",
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2
   },
   orderTypeRow: {
     flexDirection: "row",
@@ -2297,7 +2632,8 @@ const createStyles = (theme) => StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    backgroundColor: theme.inputBg
+    backgroundColor: theme.inputBg,
+    marginBottom: 11
   },
   orderDropdownOpen: {
     borderColor: theme.accent
@@ -2428,7 +2764,7 @@ const createStyles = (theme) => StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 8,
+    marginTop: 10,
     alignItems: "center"
   },
   orderActionRow: {
@@ -2484,7 +2820,33 @@ const createStyles = (theme) => StyleSheet.create({
     color: "#0A0A0A",
     fontWeight: "700",
     fontSize: 12
+  },
+  paymentStatusBubble: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1
+  },
+  paymentStatusBubblePaid: {
+    backgroundColor: "rgba(34, 197, 94, 0.15)",
+    borderColor: "rgba(34, 197, 94, 0.45)"
+  },
+  paymentStatusBubbleUnpaid: {
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderColor: "rgba(239, 68, 68, 0.45)"
+  },
+  paymentStatusBubbleText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.3
+  },
+  paymentStatusBubbleTextPaid: {
+    color: "#16A34A"
+  },
+  paymentStatusBubbleTextUnpaid: {
+    color: "#DC2626"
   }
 });
 
 export { lightTheme, darkTheme, createStyles };
+

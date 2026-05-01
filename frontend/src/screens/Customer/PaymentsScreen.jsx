@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   Text,
   TextInput,
@@ -49,6 +50,27 @@ export default function PaymentsScreen({
       <Text style={styles.staffOrderInfoText}>{text}</Text>
     </View>
   );
+  const renderStatusBubble = (status) => {
+    const normalized = String(status || "").toLowerCase();
+    const isPaid = normalized === "paid";
+    return (
+      <View
+        style={[
+          styles.paymentStatusBubble,
+          isPaid ? styles.paymentStatusBubblePaid : styles.paymentStatusBubbleUnpaid
+        ]}
+      >
+        <Text
+          style={[
+            styles.paymentStatusBubbleText,
+            isPaid ? styles.paymentStatusBubbleTextPaid : styles.paymentStatusBubbleTextUnpaid
+          ]}
+        >
+          {isPaid ? "PAID" : "UNPAID"}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.orderCard}>
@@ -69,140 +91,6 @@ export default function PaymentsScreen({
           </Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.profileSectionHeader}>
-        <Text style={styles.sectionTitle}>Saved Cards</Text>
-      </View>
-      {savedCards.length ? (
-        savedCards.map((card) => (
-          <View
-            key={String(card._id)}
-            style={styles.savedCardItem}
-          >
-            <View style={styles.seatMapHeader}>
-              <Text style={styles.staffOrderTitle}>
-                {card.brand || "Card"} **** {card.last4}
-              </Text>
-              {card.isDefault ? <Text style={styles.helperText}>Default</Text> : null}
-            </View>
-            <Text style={styles.staffOrderMeta}>
-              Exp {card.expiryMonth}/{card.expiryYear}
-            </Text>
-            <View style={styles.orderActionRow}>
-              {!card.isDefault ? (
-                <TouchableOpacity
-                  style={styles.actionGhost}
-                  onPress={() => setDefaultSavedCard(card._id)}
-                >
-                  <Text style={styles.actionGhostText}>Set Default</Text>
-                </TouchableOpacity>
-              ) : null}
-              <TouchableOpacity
-                style={styles.actionGhost}
-                onPress={() => deleteSavedCard(card._id)}
-              >
-                <Text style={styles.actionGhostText}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.helperText}>No saved cards yet.</Text>
-      )}
-
-      <View style={styles.profileSectionHeader}>
-        <Text style={styles.sectionTitle}>Add Card</Text>
-      </View>
-      <TouchableOpacity
-        style={styles.actionPrimary}
-        onPress={() => setAddCardOpen((current) => !current)}
-      >
-        <Text style={styles.actionPrimaryText}>
-          {addCardOpen ? "Close Card Form" : "Add Card"}
-        </Text>
-      </TouchableOpacity>
-      {addCardOpen ? (
-        <View style={styles.cardBlock}>
-          <TextInput
-            style={styles.input}
-            placeholder="Cardholder name"
-            placeholderTextColor="#8F98A8"
-            value={savedCardForm.cardHolderName}
-            onChangeText={(value) => setSavedCardForm((s) => ({ ...s, cardHolderName: value }))}
-          />
-          <TouchableOpacity
-            style={[styles.orderDropdown, brandOpen && styles.orderDropdownOpen]}
-            onPress={() => setBrandOpen((current) => !current)}
-          >
-            <Text style={styles.orderDropdownText}>
-              {savedCardForm.brand || "Select card brand"}
-            </Text>
-          </TouchableOpacity>
-          {brandOpen ? (
-            <View style={styles.orderDropdownList}>
-              {brandOptions.map((brand) => {
-                const isActive = String(savedCardForm.brand) === String(brand);
-                return (
-                  <TouchableOpacity
-                    key={brand}
-                    style={[
-                      styles.orderDropdownOption,
-                      isActive && styles.orderDropdownOptionActive
-                    ]}
-                    onPress={() => {
-                      setSavedCardForm((s) => ({ ...s, brand }));
-                      setBrandOpen(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.orderDropdownOptionText,
-                        isActive && styles.orderDropdownOptionTextActive
-                      ]}
-                    >
-                      {brand}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : null}
-          <TextInput
-            style={styles.input}
-            placeholder="Card number"
-            placeholderTextColor="#8F98A8"
-            value={formatCardNumber(savedCardForm.cardNumber)}
-            onChangeText={(value) =>
-              setSavedCardForm((s) => ({
-                ...s,
-                cardNumber: String(value || "").replace(/\D/g, "").slice(0, 16)
-              }))
-            }
-            keyboardType="number-pad"
-          />
-          <View style={styles.expiryRow}>
-            <TextInput
-              style={[styles.input, styles.expiryInput]}
-              placeholder="MM"
-              placeholderTextColor="#8F98A8"
-              value={savedCardForm.expiryMonth}
-              onChangeText={(value) => setSavedCardForm((s) => ({ ...s, expiryMonth: value }))}
-              keyboardType="number-pad"
-            />
-            <TextInput
-              style={[styles.input, styles.expiryInput]}
-              placeholder="YYYY"
-              placeholderTextColor="#8F98A8"
-              value={savedCardForm.expiryYear}
-              onChangeText={(value) => setSavedCardForm((s) => ({ ...s, expiryYear: value }))}
-              keyboardType="number-pad"
-            />
-          </View>
-          <TouchableOpacity style={styles.placeOrderButton} onPress={() => addSavedCard(savedCardForm)}>
-            <Text style={styles.primaryText}>Save Card</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
         {[
           { key: "unpaid", label: "UNPAID" },
@@ -246,7 +134,7 @@ export default function PaymentsScreen({
               >
                 <View style={styles.seatMapHeader}>
                   <Text style={styles.staffOrderTitle}>{order.orderNumber || "Order"}</Text>
-                  <Text style={styles.staffOrderMeta}>{order.status || "Pending"}</Text>
+                  {renderStatusBubble("unpaid")}
                 </View>
                 {renderMetaRow("cash-outline", `Amount: ${totalAmount}`, `unpaid-amount-${order._id}`)}
                 {renderMetaRow(
@@ -282,8 +170,9 @@ export default function PaymentsScreen({
                   <Text style={styles.staffOrderTitle}>
                     {payment.orderNumber || payment.orderId?.orderNumber || "Payment"}
                   </Text>
-                  <Text style={styles.staffOrderMeta}>{payment.paymentId || "ID pending"}</Text>
+                  {renderStatusBubble("paid")}
                 </View>
+                <Text style={styles.staffOrderMeta}>{payment.paymentId || "ID pending"}</Text>
                 {renderMetaRow(
                   "cash-outline",
                   `Amount: ${totalAmount}`,
@@ -327,6 +216,162 @@ export default function PaymentsScreen({
           </Text>
         )
       )}
+
+      <View style={styles.profileSectionHeader}>
+        <Text style={styles.sectionTitle}>Payment Methods</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.actionPrimary}
+        onPress={() => setAddCardOpen(true)}
+      >
+        <Text style={styles.actionPrimaryText}>Add Card</Text>
+      </TouchableOpacity>
+
+      <View style={styles.profileSectionHeader}>
+        <Text style={styles.sectionTitle}>Saved Cards</Text>
+      </View>
+      {savedCards.length ? (
+        savedCards.map((card) => (
+          <View
+            key={String(card._id)}
+            style={styles.savedCardItem}
+          >
+            <View style={styles.seatMapHeader}>
+              <Text style={styles.staffOrderTitle}>
+                {card.brand || "Card"} **** {card.last4}
+              </Text>
+              {card.isDefault ? <Text style={styles.helperText}>Default</Text> : null}
+            </View>
+            <Text style={styles.staffOrderMeta}>
+              Exp {card.expiryMonth}/{card.expiryYear}
+            </Text>
+            <View style={styles.orderActionRow}>
+              {!card.isDefault ? (
+                <TouchableOpacity
+                  style={styles.actionGhost}
+                  onPress={() => setDefaultSavedCard(card._id)}
+                >
+                  <Text style={styles.actionGhostText}>Set Default</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={styles.actionGhost}
+                onPress={() => deleteSavedCard(card._id)}
+              >
+                <Text style={styles.actionGhostText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.helperText}>No saved cards yet.</Text>
+      )}
+
+      <Modal
+        visible={addCardOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddCardOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Card</Text>
+              <TouchableOpacity onPress={() => setAddCardOpen(false)}>
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <View style={styles.cardBlock}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Cardholder name"
+                  placeholderTextColor="#8F98A8"
+                  value={savedCardForm.cardHolderName}
+                  onChangeText={(value) => setSavedCardForm((s) => ({ ...s, cardHolderName: value }))}
+                />
+                <TouchableOpacity
+                  style={[styles.orderDropdown, brandOpen && styles.orderDropdownOpen]}
+                  onPress={() => setBrandOpen((current) => !current)}
+                >
+                  <Text style={styles.orderDropdownText}>
+                    {savedCardForm.brand || "Select card brand"}
+                  </Text>
+                </TouchableOpacity>
+                {brandOpen ? (
+                  <View style={styles.orderDropdownList}>
+                    {brandOptions.map((brand) => {
+                      const isActive = String(savedCardForm.brand) === String(brand);
+                      return (
+                        <TouchableOpacity
+                          key={brand}
+                          style={[
+                            styles.orderDropdownOption,
+                            isActive && styles.orderDropdownOptionActive
+                          ]}
+                          onPress={() => {
+                            setSavedCardForm((s) => ({ ...s, brand }));
+                            setBrandOpen(false);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.orderDropdownOptionText,
+                              isActive && styles.orderDropdownOptionTextActive
+                            ]}
+                          >
+                            {brand}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : null}
+                <TextInput
+                  style={styles.input}
+                  placeholder="Card number"
+                  placeholderTextColor="#8F98A8"
+                  value={formatCardNumber(savedCardForm.cardNumber)}
+                  onChangeText={(value) =>
+                    setSavedCardForm((s) => ({
+                      ...s,
+                      cardNumber: String(value || "").replace(/\D/g, "").slice(0, 16)
+                    }))
+                  }
+                  keyboardType="number-pad"
+                />
+                <View style={styles.expiryRow}>
+                  <TextInput
+                    style={[styles.input, styles.expiryInput]}
+                    placeholder="MM"
+                    placeholderTextColor="#8F98A8"
+                    value={savedCardForm.expiryMonth}
+                    onChangeText={(value) => setSavedCardForm((s) => ({ ...s, expiryMonth: value }))}
+                    keyboardType="number-pad"
+                  />
+                  <TextInput
+                    style={[styles.input, styles.expiryInput]}
+                    placeholder="YYYY"
+                    placeholderTextColor="#8F98A8"
+                    value={savedCardForm.expiryYear}
+                    onChangeText={(value) => setSavedCardForm((s) => ({ ...s, expiryYear: value }))}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.placeOrderButton}
+                  onPress={() => {
+                    addSavedCard(savedCardForm);
+                    setAddCardOpen(false);
+                  }}
+                >
+                  <Text style={styles.primaryText}>Save Card</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
