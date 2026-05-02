@@ -39,9 +39,9 @@ frontend/
     ├── index.js
     │
     └── routes/
-        ├── dishRoutes.js               ← API for Dishes
-        ├── tableRoutes.js              ← API for Tables
-        ├── orderRoutes.js              ← API for Orders
-        ├── reviewRoutes.js             ← API for Reviews
-        ├── tableReservationRotes.js    ← API for Table Reservations
-        └── paymentRoutes.js            ← API for Payments
+        ├── dishRoutes.js               ← API for Dishes  (IT24102939 – Nayakarathne R M U K)
+        ├── tableRoutes.js              ← API for Tables  (IT24101987 – Sarathchandra R.L.N )
+        ├── orderRoutes.js              ← API for Orders   (IT24102852–Pallawala S R)
+        ├── reviewRoutes.js             ← API for Reviews     (IT24102939 – Nayakarathne R M U K)
+        ├── tableReservationRotes.js    ← API for Table Reservations  (IT24101987 – Sarathchandra R.L.N )
+        └── paymentRoutes.js            ← API for Payments    (IT24102342 – Ahamed A A H )
