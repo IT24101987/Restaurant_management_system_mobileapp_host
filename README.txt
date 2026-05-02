@@ -1,5 +1,5 @@
 01). GitHub Repository Link 
-GitHub Repository: 
+GitHub Repository:  https://github.com/IT24101987/SE-23_Restaurant_management_system_mobileapp_host
 
 02).Team Details 
 Group Number: SE_23
