@@ -71,6 +71,13 @@ export default function PaymentsScreen({
       </View>
     );
   };
+  const formatOrderTypeLabel = (type) => {
+    const normalized = String(type || "").toLowerCase();
+    if (normalized === "table") return "Dine In";
+    if (normalized === "delivery") return "Delivery";
+    if (normalized === "pickup") return "Pickup";
+    return normalized || "-";
+  };
 
   return (
     <View style={styles.orderCard}>
@@ -161,6 +168,10 @@ export default function PaymentsScreen({
                 ? payment.totalAmount.toFixed(2)
                 : payment.totalAmount || "-";
             const refundStatus = payment.refundStatus || "none";
+            const orderItems = Array.isArray(payment?.orderId?.items) ? payment.orderId.items : [];
+            const itemsText = orderItems.length
+              ? orderItems.map((item) => `${item?.name || "Item"} x${item?.quantity || 0}`).join(", ")
+              : "-";
             return (
               <View
                 key={String(payment._id || payment.paymentId || payment.orderId?._id)}
@@ -182,6 +193,16 @@ export default function PaymentsScreen({
                   "card-outline",
                   `Method: ${String(payment.paymentMethod || "cash").toUpperCase()}`,
                   `payment-method-${payment._id || payment.paymentId}`
+                )}
+                {renderMetaRow(
+                  "receipt-outline",
+                  `Order Type: ${formatOrderTypeLabel(payment.orderId?.orderType)}`,
+                  `payment-order-type-${payment._id || payment.paymentId}`
+                )}
+                {renderMetaRow(
+                  "list-outline",
+                  `Items: ${itemsText}`,
+                  `payment-items-${payment._id || payment.paymentId}`
                 )}
                 {renderMetaRow(
                   "checkmark-done-outline",

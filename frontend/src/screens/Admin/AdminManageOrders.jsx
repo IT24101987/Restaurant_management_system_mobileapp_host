@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Image, Modal, ScrollView, View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function AdminManageOrders({
@@ -17,6 +17,8 @@ export default function AdminManageOrders({
   updateAdminOrderStatus,
   markAdminOrderPaid,
   cancelAdminOrder,
+  addDishToAdminOrder,
+  adminDishes,
   setOrderModalVisible,
   formatOrderType,
   formatReservationRange,
@@ -26,6 +28,9 @@ export default function AdminManageOrders({
   isAdminDark
 }) {
   const [ordersTab, setOrdersTab] = useState("all");
+  const [dishModalVisible, setDishModalVisible] = useState(false);
+  const [dishModalOrder, setDishModalOrder] = useState(null);
+  const [dishQuantities, setDishQuantities] = useState({});
   const DELIVERY_FEE = 250;
   const resolveSubtotal = (order) => {
     if (!order) return 0;
@@ -184,7 +189,12 @@ export default function AdminManageOrders({
           const isDelivery = String(order.orderType || "").toLowerCase() === "delivery";
           const subtotal = resolveSubtotal(order);
           const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
-          const totalToPay = subtotal + deliveryFee;
+          const totalToPay =
+            typeof order.totalAmount === "number"
+              ? Number(order.totalAmount)
+              : subtotal + deliveryFee;
+          const paymentType = String(order.paymentMethod || "cash").toUpperCase();
+          const isPaid = String(order.paymentStatus || "").toLowerCase() === "paid";
           const bookingType = order.isManualBooking ? "MANUAL" : "CUSTOMER";
           const reservationDisplay = formatReservationRange ? formatReservationRange(order) : "";
           const tableLabel = order.tableNumber || order.tableId?.tableNo || order.tableId?.name || "-";
@@ -236,25 +246,28 @@ export default function AdminManageOrders({
                 renderMetaRow("location-outline", `Location: ${locationLabel}`, `admin-location-${order._id}`)
               ) : null}
               {renderMetaRow("list-outline", `Items: ${itemsText || "-"}`, `admin-items-${order._id}`)}
+              {renderMetaRow(
+                "card-outline",
+                `Payment Type: ${paymentType}`,
+                `admin-payment-type-${order._id}`
+              )}
+              {renderMetaRow(
+                "cash-outline",
+                `Subtotal: LKR ${subtotal.toFixed(2)}`,
+                `admin-subtotal-${order._id}`
+              )}
               {isDelivery ? (
-                <>
-                  {renderMetaRow(
-                    "cash-outline",
-                    `Subtotal: LKR ${subtotal.toFixed(2)}`,
-                    `admin-subtotal-${order._id}`
-                  )}
-                  {renderMetaRow(
-                    "car-outline",
-                    `Delivery Fee: LKR ${deliveryFee.toFixed(2)}`,
-                    `admin-delivery-${order._id}`
-                  )}
-                  {renderMetaRow(
-                    "wallet-outline",
-                    `Total to Pay: LKR ${totalToPay.toFixed(2)}`,
-                    `admin-total-${order._id}`
-                  )}
-                </>
+                renderMetaRow(
+                  "car-outline",
+                  `Delivery Fee: LKR ${deliveryFee.toFixed(2)}`,
+                  `admin-delivery-${order._id}`
+                )
               ) : null}
+              {renderMetaRow(
+                "wallet-outline",
+                `Have to Pay: LKR ${Number(totalToPay || 0).toFixed(2)}`,
+                `admin-total-${order._id}`
+              )}
               {renderMetaRow(
                 "time-outline",
                 `Created: ${formatDateTime(order.createdAt)}`,
@@ -272,6 +285,25 @@ export default function AdminManageOrders({
                     </Text>
                   </TouchableOpacity>
                 ))}
+                <TouchableOpacity
+                  style={[
+                    styles.adminActionButton,
+                    isAdminDark && styles.adminActionButtonDark,
+                    isPaid && { opacity: 0.5 }
+                  ]}
+                  onPress={() => {
+                    if (!isPaid) {
+                      setDishModalOrder(order);
+                      setDishQuantities({});
+                      setDishModalVisible(true);
+                    }
+                  }}
+                  disabled={isPaid}
+                >
+                  <Text style={[styles.adminActionText, isAdminDark && styles.adminActionTextDark]}>
+                    {isPaid ? "Paid Order" : "Add Dish"}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.adminActionButton, isAdminDark && styles.adminActionButtonDark]}
                   onPress={() => markAdminOrderPaid(order._id)}
@@ -292,6 +324,140 @@ export default function AdminManageOrders({
             </View>
           );
         })}
+      <Modal
+        visible={dishModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setDishModalVisible(false);
+          setDishModalOrder(null);
+          setDishQuantities({});
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Dish To Order</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setDishModalVisible(false);
+                  setDishModalOrder(null);
+                  setDishQuantities({});
+                }}
+              >
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <View style={[styles.adminCard, isAdminDark && styles.adminCardDark]}>
+                <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
+                  {dishModalOrder?.orderNumber || "Order"}
+                </Text>
+                <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+                  Payment: {dishModalOrder?.paymentStatus || "unpaid"}
+                </Text>
+              </View>
+              {(adminDishes || []).length ? (
+                (adminDishes || []).map((dish) => (
+                  <View
+                    key={`modal-dish-${dish._id}`}
+                    style={[
+                      styles.adminCard,
+                      isAdminDark && styles.adminCardDark,
+                      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }
+                    ]}
+                  >
+                    {dish.imageUrl ? (
+                      <Image
+                        source={{ uri: dish.imageUrl }}
+                        style={{ width: 44, height: 44, borderRadius: 8 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isAdminDark ? "rgba(148,163,184,0.2)" : "rgba(148,163,184,0.15)"
+                        }}
+                      >
+                        <Ionicons
+                          name="image-outline"
+                          size={18}
+                          color={isAdminDark ? "#94A3B8" : "#64748B"}
+                        />
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark]}>
+                        {dish.name || "Dish"}
+                      </Text>
+                      <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+                        LKR {Number(dish.price || 0).toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.adminActionButton, isAdminDark && styles.adminActionButtonDark]}
+                        onPress={() => {
+                          const currentQty = Number(dishQuantities[dish._id] || 0);
+                          setDishQuantities((current) => ({
+                            ...current,
+                            [dish._id]: Math.max(currentQty - 1, 0)
+                          }));
+                        }}
+                      >
+                        <Text style={[styles.adminActionText, isAdminDark && styles.adminActionTextDark]}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.adminCardTitle, isAdminDark && styles.adminCardTitleDark, { minWidth: 18, textAlign: "center" }]}>
+                        {Number(dishQuantities[dish._id] || 0)}
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.adminActionButton, isAdminDark && styles.adminActionButtonDark]}
+                        onPress={() => {
+                          const currentQty = Number(dishQuantities[dish._id] || 0);
+                          setDishQuantities((current) => ({
+                            ...current,
+                            [dish._id]: currentQty + 1
+                          }));
+                        }}
+                      >
+                        <Text style={[styles.adminActionText, isAdminDark && styles.adminActionTextDark]}>+</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.adminActionButton,
+                          isAdminDark && styles.adminActionButtonDark,
+                          Number(dishQuantities[dish._id] || 0) < 1 && { opacity: 0.5 }
+                        ]}
+                        disabled={Number(dishQuantities[dish._id] || 0) < 1}
+                        onPress={async () => {
+                          if (!dishModalOrder) return;
+                          const qty = Number(dishQuantities[dish._id] || 0);
+                          if (qty < 1) return;
+                          await addDishToAdminOrder(dishModalOrder, dish, qty);
+                          setDishQuantities((current) => ({ ...current, [dish._id]: 0 }));
+                        }}
+                      >
+                        <Text style={[styles.adminActionText, isAdminDark && styles.adminActionTextDark]}>
+                          Add
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={[styles.adminCardMeta, isAdminDark && styles.adminCardMetaDark]}>
+                  No dishes available.
+                </Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

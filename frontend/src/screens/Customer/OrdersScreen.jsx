@@ -114,6 +114,14 @@ export default function OrdersScreen({
           const itemsText = (order.items || [])
             .map((item) => `${item.name || "Item"} x${item.quantity || 0}`)
             .join(", ");
+          const subAmount =
+            typeof order.totalAmount === "number"
+              ? order.totalAmount
+              : (Array.isArray(order.items) ? order.items : []).reduce(
+                  (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+                  0
+                );
+          const paymentType = String(order.paymentMethod || "cash").toUpperCase();
           const orderStatus = String(order.status || "").toLowerCase();
           const canCancel = !["cancelled", "delivered", "served"].includes(orderStatus);
           const statusLabel = orderStatus === "cancelled" ? "Finished" : (order.status || "Unknown");
@@ -146,6 +154,9 @@ export default function OrdersScreen({
               <Text style={styles.staffOrderMeta}>
                 Type: {formatOrderType(order.orderType)} - Payment: {order.paymentStatus || "Unpaid"}
               </Text>
+              <Text style={styles.staffOrderMeta}>
+                Payment Type: {paymentType}
+              </Text>
               {normalizeOrderType(order.orderType) === "table" ? (
                 <Text style={styles.staffOrderMeta}>
                   Table: {order.tableNumber || order.tableId?.tableNo || "-"} - Seats: {order.seatCount || "-"}
@@ -159,6 +170,9 @@ export default function OrdersScreen({
               </Text>
               <Text style={styles.staffOrderMeta}>
                 Items: {itemsText || "-"}
+              </Text>
+              <Text style={styles.staffOrderMeta}>
+                Subtotal: LKR {Number(subAmount || 0).toFixed(2)}
               </Text>
               {canCancel ? (
                 <View style={styles.orderActionRow}>

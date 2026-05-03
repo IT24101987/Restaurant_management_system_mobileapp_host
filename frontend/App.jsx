@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from "expo-image-picker";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
@@ -58,8 +58,11 @@ const DEFAULT_ADMIN_PAYMENT_DEFAULTS = {
   offerType: "fixed",
   offerValue: "0"
 };
+const DISHES_PER_PAGE = 9;
 
 export default function App() {
+  const menuListRef = useRef(null);
+  const menuCategoryRowRef = useRef(null);
   const [initializing, setInitializing] = useState(true);
   const [token, setToken] = useState(null);
   const [role, setRole] = useState("customer");
@@ -80,6 +83,7 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [catalogBusy, setCatalogBusy] = useState(false);
   const [dishes, setDishes] = useState([]);
+  const [trendingPool, setTrendingPool] = useState([]);
   const [tables, setTables] = useState([]);
   const [tableSeatUsage, setTableSeatUsage] = useState({});
   const [tableSeatUsageBySlot, setTableSeatUsageBySlot] = useState({});
@@ -88,6 +92,10 @@ export default function App() {
   const [cart, setCart] = useState([]);
   const [orderType, setOrderType] = useState("table");
   const [menuCategoryFilter, setMenuCategoryFilter] = useState("all");
+  const [menuSearchQuery, setMenuSearchQuery] = useState("");
+  const [allMenuCategories, setAllMenuCategories] = useState([]);
+  const [dishPage, setDishPage] = useState(1);
+  const [dishTotalPages, setDishTotalPages] = useState(1);
   const [selectedTableId, setSelectedTableId] = useState("");
   const [seatCount, setSeatCount] = useState("2");
   const [seatDropdownOpen, setSeatDropdownOpen] = useState(false);
@@ -144,7 +152,7 @@ export default function App() {
     dishId: "",
     dishName: "",
     reviewerName: "",
-    rating: "",
+    rating: "0",
     comment: ""
   });
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -350,24 +358,61 @@ export default function App() {
   const [profileTab, setProfileTab] = useState("profile");
 
   const trendingDishes = useMemo(() => {
-    const available = dishes.filter((dish) => dish?.isAvailable);
+    const source = Array.isArray(trendingPool) && trendingPool.length ? trendingPool : dishes;
+    const available = source.filter((dish) => dish?.isAvailable !== false);
     const trending = available.filter((dish) => dish?.isTrending);
-    const fallback = available.filter((dish) => !dish?.isTrending);
-    return [...trending, ...fallback].slice(0, 3);
-  }, [dishes]);
+    return trending.slice(0, 3);
+  }, [trendingPool, dishes]);
   const menuCategories = useMemo(() => {
-    const categories = dishes
-      .map((dish) => String(dish?.category || "").trim())
-      .filter(Boolean);
-    return [...new Set(categories)];
-  }, [dishes]);
+    const normalized = new Map();
+    [...DEFAULT_DISH_CATEGORIES, ...(allMenuCategories || []), ...dishes.map((d) => d?.category)]
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+      .forEach((cat) => {
+        const key = cat.toLowerCase();
+        if (!normalized.has(key)) normalized.set(key, cat);
+      });
+    return Array.from(normalized.values()).sort((a, b) =>
+      a.localeCompare(b, "en", { sensitivity: "base" })
+    );
+  }, [allMenuCategories, dishes]);
   const filteredMenuDishes = useMemo(() => {
     const available = dishes.filter((dish) => dish?.isAvailable !== false);
-    if (menuCategoryFilter === "all") return available;
-    return available.filter(
-      (dish) => String(dish?.category || "").trim() === menuCategoryFilter
-    );
-  }, [dishes, menuCategoryFilter]);
+    const query = String(menuSearchQuery || "").trim().toLowerCase();
+    return available.filter((dish) => {
+      const categoryMatch =
+        menuCategoryFilter === "all" ||
+        String(dish?.category || "").trim() === menuCategoryFilter;
+      if (!categoryMatch) return false;
+      if (!query) return true;
+      const name = String(dish?.name || "").toLowerCase();
+      const description = String(dish?.description || "").toLowerCase();
+      const category = String(dish?.category || "").toLowerCase();
+      return (
+        name.includes(query) ||
+        description.includes(query) ||
+        category.includes(query)
+      );
+    });
+  }, [dishes, menuCategoryFilter, menuSearchQuery]);
+  const categoryIconMap = {
+    all: "apps-outline",
+    pizza: "pizza-outline",
+    burger: "fast-food-outline",
+    "chicken fry": "drumstick-outline",
+    noodles: "restaurant-outline",
+    appetizer: "restaurant-outline",
+    "main course": "restaurant-outline",
+    dessert: "ice-cream-outline",
+    beverage: "wine-outline",
+    salad: "leaf-outline",
+    soup: "water-outline",
+    snack: "cafe-outline"
+  };
+  const getCategoryIcon = (category) => {
+    const key = String(category || "").trim().toLowerCase();
+    return categoryIconMap[key] || "restaurant-outline";
+  };
   const adminDishCategoryOptions = useMemo(() => {
     const normalizedCategories = new Map();
     adminDishes.forEach((dish) => {
@@ -445,8 +490,8 @@ export default function App() {
   const isAdminRole = role === "admin";
   const isStaffRole = ["manager", "cashier", "staff"].includes(role);
   const roleLabel = isAdminRole ? "Admin" : isStaffRole ? "Staff" : "Customer";
-  const isAdminDark = isDark;
   const isDark = appTheme === "dark";
+  const isAdminDark = false;
   const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
   const styles = useMemo(() => createStyles(theme), [theme]);
   const authTitle =
@@ -753,11 +798,11 @@ export default function App() {
     return normalized || "-";
   };
   const manualBookingMode = isAdminRole && adminTab === "tables" && orderType === "table";
+  const isSeatMapManualBooking = reservationOnly && !isAdminRole && orderType === "table";
   const DELIVERY_FEE = 250;
-  const orderSubtotal = cartTotal;
+  const orderSubtotal = manualBookingMode || isSeatMapManualBooking ? DELIVERY_FEE : cartTotal;
   const deliveryFee = orderType === "delivery" ? DELIVERY_FEE : 0;
-  const bookingFee = manualBookingMode || reservationOnly ? DELIVERY_FEE : 0;
-  const orderFee = manualBookingMode ? bookingFee : deliveryFee;
+  const orderFee = deliveryFee;
   const orderTotal = orderSubtotal + orderFee;
   const manualBookingTotal = DELIVERY_FEE;
   const cardBrandOptions = ["Visa", "Mastercard", "Amex", "Discover", "UnionPay", "Other"];
@@ -776,11 +821,13 @@ export default function App() {
     String(cardForm.expiryYear || "").trim();
 
   useEffect(() => {
-    if (orderType !== "delivery") return;
+    const requiresCard =
+      orderType === "delivery" || isSeatMapManualBooking;
+    if (!requiresCard) return;
     if (paymentMethod !== "card") {
       setPaymentMethod("card");
     }
-  }, [orderType, paymentMethod]);
+  }, [orderType, paymentMethod, isAdminRole, isSeatMapManualBooking]);
 
   useEffect(() => {
     if (!isAdminRole) return;
@@ -919,7 +966,7 @@ export default function App() {
       dishId: String(dish?._id || ""),
       dishName: dish?.name || "",
       reviewerName: "",
-      rating: "",
+      rating: "0",
       comment: ""
     });
     setReviewModalVisible(true);
@@ -1099,15 +1146,28 @@ export default function App() {
 
   const renderTrendingCard = (dish) => (
     <View key={String(dish?._id || dish?.name || Math.random())} style={styles.trendingCard}>
+      <View style={styles.trendingTopGlow} />
       {renderDishImage(dish)}
       <View style={styles.trendingBody}>
-        <Text style={styles.trendingTitle}>{dish?.name || "Dish"}</Text>
-        <Text style={styles.trendingMeta}>
-          {dish?.category || "General"} - LKR {Number(dish?.price || 0).toFixed(2)}
-        </Text>
-        <Text style={styles.trendingMeta}>Prep {dish?.prepTimeMin || 0}m</Text>
+        <View style={styles.trendingHeaderRow}>
+          <Text style={styles.trendingTitle}>{dish?.name || "Dish"}</Text>
+          <View style={styles.trendingHotBadge}>
+            <Text style={styles.trendingHotBadgeText}>HOT</Text>
+          </View>
+        </View>
+        <View style={styles.trendingMetaRow}>
+          <View style={styles.trendingChip}>
+            <Text style={styles.trendingChipText}>{dish?.category || "General"}</Text>
+          </View>
+          <View style={styles.trendingChip}>
+            <Text style={styles.trendingChipText}>Prep {dish?.prepTimeMin || 0}m</Text>
+          </View>
+          <View style={styles.trendingChipPrice}>
+            <Text style={styles.trendingChipPriceText}>LKR {Number(dish?.price || 0).toFixed(2)}</Text>
+          </View>
+        </View>
         <TouchableOpacity style={styles.orderMiniButton} onPress={() => openOrderModal(dish, "table")}>
-          <Text style={styles.orderMiniText}>Order now</Text>
+          <Text style={styles.orderMiniText}>Order Now</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1220,15 +1280,33 @@ export default function App() {
     setCustomerPayments([]);
   };
 
-  const loadCatalog = async () => {
+  const loadCatalog = async (options = {}) => {
     if (!token) return;
+    const requestedPage = Math.max(
+      1,
+      Number.parseInt(String(options?.page ?? dishPage), 10) || 1
+    );
+    const activeCategory = String(options?.category ?? menuCategoryFilter).trim();
+    const categoryParam = activeCategory && activeCategory !== "all"
+      ? `&category=${encodeURIComponent(activeCategory)}`
+      : "";
     setCatalogBusy(true);
     try {
-      const response = await apiFetch("/catalog?scope=user&includeSeatUsage=true", { token });
-      setDishes(response?.dishes || []);
-      setTables(response?.tables || []);
-      setTableSeatUsage(response?.tableSeatUsage || {});
-      setTableSeatUsageBySlot(response?.tableSeatUsageBySlot || {});
+      const [catalogResponse, publicDishesResponse] = await Promise.all([
+        apiFetch(
+          `/catalog?scope=user&includeSeatUsage=true&includeDishTotal=true&dishLimit=${DISHES_PER_PAGE}&dishPage=${requestedPage}${categoryParam}`,
+          { token }
+        ),
+        apiFetch("/dishes/public")
+      ]);
+      setDishes(catalogResponse?.dishes || []);
+      setAllMenuCategories(catalogResponse?.dishCategories || []);
+      setDishPage(Number(catalogResponse?.dishPagination?.page || requestedPage));
+      setDishTotalPages(Math.max(1, Number(catalogResponse?.dishPagination?.totalPages || 1)));
+      setTables(catalogResponse?.tables || []);
+      setTableSeatUsage(catalogResponse?.tableSeatUsage || {});
+      setTableSeatUsageBySlot(catalogResponse?.tableSeatUsageBySlot || {});
+      setTrendingPool(publicDishesResponse?.dishes || []);
     } catch (err) {
       setError(err.message || "Failed to load catalog.");
     } finally {
@@ -1389,6 +1467,22 @@ export default function App() {
     }
   };
 
+  const changeDishPage = async (nextPage) => {
+    menuListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    await loadCatalog({ page: nextPage });
+  };
+
+  const handleMenuCategorySelect = async (category, index = 0) => {
+    const nextCategory = String(category || "all");
+    setMenuCategoryFilter(nextCategory);
+    menuCategoryRowRef.current?.scrollTo({
+      x: Math.max(0, index * 120 - 80),
+      animated: true
+    });
+    menuListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    await loadCatalog({ page: 1, category: nextCategory });
+  };
+
   const payCustomerOrder = async (orderId) => {
     if (!token || !orderId) return;
     setCustomerPayingOrderId(String(orderId));
@@ -1484,21 +1578,31 @@ export default function App() {
       setError("Booking date and time are required.");
       return;
     }
-    if (orderType === "delivery") {
+    if (orderType === "delivery" || isSeatMapManualBooking) {
       if (paymentMethod !== "card") {
-        setError("Card payment is required for delivery.");
+        setError(
+          orderType === "delivery"
+            ? "Card payment is required for delivery."
+            : "Card payment is required for table booking."
+        );
         return;
       }
-      if (!isAdminRole) {
-        if (useSavedCard) {
-          if (!selectedCardId) {
-            setError("Select a saved card for delivery.");
-            return;
-          }
-        } else if (!isCardFormComplete) {
-          setError("Enter card details for delivery.");
+      if (useSavedCard) {
+        if (!selectedCardId) {
+          setError(
+            orderType === "delivery"
+              ? "Select a saved card for delivery."
+              : "Select a saved card for table booking."
+          );
           return;
         }
+      } else if (!isCardFormComplete) {
+        setError(
+          orderType === "delivery"
+            ? "Enter card details for delivery."
+            : "Enter card details for table booking."
+        );
+        return;
       }
     }
     if (!cart.length) {
@@ -1601,7 +1705,12 @@ export default function App() {
               phone: normalizedPhone,
               deliveryAddress,
               paymentMethod,
-              paymentStatus: paymentMethod === "card" ? "paid" : "unpaid",
+              isManualBooking: isSeatMapManualBooking,
+          paymentStatus:
+            paymentMethod === "card" &&
+            (orderType === "delivery" || isSeatMapManualBooking)
+              ? "paid"
+              : "unpaid",
               items: cart.map((item) => ({
                 dishId: item.dishId,
                 quantity: item.quantity
@@ -1621,7 +1730,7 @@ export default function App() {
         }
         if (
           !isAdminRole &&
-          orderType === "delivery" &&
+          (orderType === "delivery" || isSeatMapManualBooking) &&
           paymentMethod === "card" &&
           !useSavedCard &&
           saveCard
@@ -1741,6 +1850,51 @@ export default function App() {
       setAdminDishesMsg(err.message || "Failed to load dishes.");
     } finally {
       setAdminDishesBusy(false);
+    }
+  };
+
+  const addDishToAdminOrder = async (order, dish, quantityToAdd = 1) => {
+    if (!token || !order?._id || !dish?._id) return;
+    const safeQty = Math.max(Number(quantityToAdd || 0), 0);
+    if (!Number.isFinite(safeQty) || safeQty < 1) return;
+    const paymentStatus = String(order?.paymentStatus || "").toLowerCase();
+    if (paymentStatus === "paid") {
+      setAdminOrdersMsg("Cannot add dishes to paid orders.");
+      return;
+    }
+
+    const currentItems = Array.isArray(order.items) ? order.items : [];
+    const updatedItems = [...currentItems];
+    const existingIndex = updatedItems.findIndex(
+      (item) =>
+        String(item?.dishId || "") === String(dish._id) ||
+        String(item?.name || "").trim().toLowerCase() === String(dish.name || "").trim().toLowerCase()
+    );
+
+    if (existingIndex >= 0) {
+      updatedItems[existingIndex] = {
+        ...updatedItems[existingIndex],
+        quantity: Number(updatedItems[existingIndex].quantity || 0) + safeQty
+      };
+    } else {
+      updatedItems.push({
+        dishId: dish._id,
+        name: dish.name,
+        quantity: safeQty,
+        price: Number(dish.price || 0)
+      });
+    }
+
+    try {
+      await apiFetch(`/orders/${order._id}`, {
+        method: "PUT",
+        token,
+        body: { items: updatedItems }
+      });
+      await loadAdminOrders();
+      setAdminOrdersMsg("");
+    } catch (err) {
+      setAdminOrdersMsg(err.message || "Failed to add dish to order.");
     }
   };
 
@@ -1999,16 +2153,21 @@ export default function App() {
 
   const handleSubmitReview = async () => {
     if (!token) return;
+    const rating = Math.max(1, Math.min(5, Number(reviewForm.rating || 0)));
+    if (!rating) {
+      setReviewMsg("Please select a star rating.");
+      return;
+    }
     setReviewBusy(true);
     setReviewMsg("");
     try {
       await apiFetch("/reviews", {
         method: "POST",
         token,
-        body: reviewForm
+        body: { ...reviewForm, rating }
       });
       setReviewMsg("Review submitted.");
-      setReviewForm({ dishId: "", dishName: "", reviewerName: "", rating: "", comment: "" });
+      setReviewForm({ dishId: "", dishName: "", reviewerName: "", rating: "0", comment: "" });
       loadCustomerReviews();
     } catch (err) {
       setReviewMsg(err.message || "Failed to submit review.");
@@ -2928,10 +3087,14 @@ export default function App() {
                     ) : null}
 
                     {!manualBookingMode ? (
-                      orderType === "delivery" ? (
+                      orderType === "delivery" || isSeatMapManualBooking ? (
                         <View style={styles.paymentNotice}>
                           <Text style={styles.profileLabel}>Payment Method</Text>
-                          <Text style={styles.staffOrderMeta}>Card payment required for delivery.</Text>
+                          <Text style={styles.staffOrderMeta}>
+                            {orderType === "delivery"
+                              ? "Card payment required for delivery."
+                              : "Card payment required for table booking (LKR 250.00)."}
+                          </Text>
                         </View>
                       ) : (
                         <View>
@@ -3869,6 +4032,8 @@ export default function App() {
                 updateAdminOrderStatus={updateAdminOrderStatus}
                 markAdminOrderPaid={markAdminOrderPaid}
                 cancelAdminOrder={cancelAdminOrder}
+                addDishToAdminOrder={addDishToAdminOrder}
+                adminDishes={adminDishes}
                 setOrderModalVisible={setOrderModalVisible}
                 formatOrderType={formatOrderType}
                 formatReservationRange={formatReservationRange}
@@ -3970,7 +4135,7 @@ export default function App() {
                           <View style={styles.adminOrderSummaryDivider} />
                           <View style={styles.adminOrderSummaryItem}>
                             <Text style={styles.adminOrderSummaryLabel}>Booking Fee</Text>
-                            <Text style={styles.adminOrderSummaryValue}>LKR {bookingFee.toFixed(2)}</Text>
+                            <Text style={styles.adminOrderSummaryValue}>LKR {manualBookingTotal.toFixed(2)}</Text>
                           </View>
                           <View style={styles.adminOrderSummaryDivider} />
                           <View style={styles.adminOrderSummaryItem}>
@@ -4241,7 +4406,7 @@ export default function App() {
                       </>
                     )}
 
-                  {!reservationOnly ? (
+                  {!reservationOnly || isSeatMapManualBooking ? (
                     <>
                   {orderType === "delivery" ? (
                     <>
@@ -4256,10 +4421,14 @@ export default function App() {
                     </>
                   ) : null}
 
-                  {orderType === "delivery" ? (
+                  {orderType === "delivery" || isSeatMapManualBooking ? (
                     <View style={styles.paymentNotice}>
                       <Text style={styles.profileLabel}>Payment Method</Text>
-                      <Text style={styles.staffOrderMeta}>Card payment required for delivery.</Text>
+                      <Text style={styles.staffOrderMeta}>
+                        {orderType === "delivery"
+                          ? "Card payment required for delivery."
+                          : "Card payment required for table booking (LKR 250.00)."}
+                      </Text>
                     </View>
                   ) : (
                     <View>
@@ -4585,15 +4754,25 @@ export default function App() {
                     value={reviewForm.reviewerName}
                     onChangeText={(value) => setReviewForm((s) => ({ ...s, reviewerName: value }))}
                   />
-                  <Text style={styles.profileLabel}>Rating (1-5)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Rating"
-                    placeholderTextColor="#8F98A8"
-                    value={reviewForm.rating}
-                    onChangeText={(value) => setReviewForm((s) => ({ ...s, rating: value }))}
-                    keyboardType="number-pad"
-                  />
+                  <Text style={styles.profileLabel}>Rating</Text>
+                  <View style={[styles.orderActionRow, { justifyContent: "flex-start", marginBottom: 6 }]}>
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const active = Number(reviewForm.rating || 0) >= star;
+                      return (
+                        <TouchableOpacity
+                          key={`review-star-${star}`}
+                          onPress={() => setReviewForm((s) => ({ ...s, rating: String(star) }))}
+                          style={{ marginRight: 8 }}
+                        >
+                          <Ionicons
+                            name={active ? "star" : "star-outline"}
+                            size={24}
+                            color={active ? "#F59E0B" : "#9CA3AF"}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                   <Text style={styles.profileLabel}>Comment</Text>
                   <TextInput
                     style={styles.input}
@@ -4625,6 +4804,7 @@ export default function App() {
             </View>
           ) : (
             <FlatList
+              ref={menuListRef}
               data={filteredMenuDishes}
               keyExtractor={(item) => String(item._id || item.name)}
               contentContainerStyle={[styles.catalogList, styles.bottomNavSpace]}
@@ -4645,7 +4825,7 @@ export default function App() {
 
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Most Trending</Text>
-                    <TouchableOpacity style={styles.secondaryButton} onPress={loadCatalog} disabled={catalogBusy}>
+                    <TouchableOpacity style={styles.secondaryButton} onPress={() => loadCatalog({ page: dishPage })} disabled={catalogBusy}>
                       <Text style={styles.secondaryText}>{catalogBusy ? "Refreshing..." : "Refresh"}</Text>
                     </TouchableOpacity>
                   </View>
@@ -4660,31 +4840,55 @@ export default function App() {
 
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Menu</Text>
-                    <TouchableOpacity style={styles.secondaryButton} onPress={loadCatalog} disabled={catalogBusy}>
+                    <TouchableOpacity style={styles.secondaryButton} onPress={() => loadCatalog({ page: dishPage })} disabled={catalogBusy}>
                       <Text style={styles.secondaryText}>{catalogBusy ? "Refreshing..." : "Refresh"}</Text>
                     </TouchableOpacity>
                   </View>
+                  <View style={styles.menuSearchWrap}>
+                    <Ionicons name="search-outline" size={18} color={theme.accent} />
+                    <TextInput
+                      style={styles.menuSearchInput}
+                      placeholder="Search food"
+                      placeholderTextColor="#B6A08F"
+                      value={menuSearchQuery}
+                      onChangeText={setMenuSearchQuery}
+                    />
+                    <TouchableOpacity style={styles.menuSearchFilterBtn} onPress={() => loadCatalog({ page: dishPage })} disabled={catalogBusy}>
+                      <Ionicons name="options-outline" size={15} color={theme.textMuted} />
+                    </TouchableOpacity>
+                  </View>
                   {menuCategories.length ? (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                    <ScrollView
+                      ref={menuCategoryRowRef}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.menuCategoryRow}
+                    >
                       <TouchableOpacity
                         style={[
-                          styles.filterChip,
-                          menuCategoryFilter === "all" && styles.filterChipActive
+                          styles.menuCategoryCard,
+                          menuCategoryFilter === "all" && styles.menuCategoryCardActive
                         ]}
-                        onPress={() => setMenuCategoryFilter("all")}
+                        onPress={() => handleMenuCategorySelect("all", 0)}
                       >
-                        <Text style={styles.filterChipText}>ALL</Text>
+                        <View style={styles.menuCategoryIconWrap}>
+                          <Ionicons name={getCategoryIcon("all")} size={18} color={theme.accent} />
+                        </View>
+                        <Text style={styles.menuCategoryText}>All</Text>
                       </TouchableOpacity>
-                      {menuCategories.map((cat) => (
+                      {menuCategories.map((cat, index) => (
                         <TouchableOpacity
                           key={cat}
                           style={[
-                            styles.filterChip,
-                            menuCategoryFilter === cat && styles.filterChipActive
+                            styles.menuCategoryCard,
+                            menuCategoryFilter === cat && styles.menuCategoryCardActive
                           ]}
-                          onPress={() => setMenuCategoryFilter(cat)}
+                          onPress={() => handleMenuCategorySelect(cat, index + 1)}
                         >
-                          <Text style={styles.filterChipText}>{String(cat).toUpperCase()}</Text>
+                          <View style={styles.menuCategoryIconWrap}>
+                            <Ionicons name={getCategoryIcon(cat)} size={18} color={theme.accent} />
+                          </View>
+                          <Text style={styles.menuCategoryText}>{String(cat)}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -4701,6 +4905,20 @@ export default function App() {
                     <Text style={styles.menuMetaText}>LKR {Number(item.price || 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.menuContent}>
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 999,
+                        backgroundColor: "rgba(0,0,0,0.08)",
+                        marginBottom: 6
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: theme.text }}>
+                        {item.category || "General"}
+                      </Text>
+                    </View>
                     <Text style={styles.menuTitle}>{item.name || "Unnamed dish"}</Text>
                     <Text style={styles.menuDescription}>{item.description || "No details added by admin."}</Text>
                     <Text style={styles.menuRating}>
@@ -4729,6 +4947,31 @@ export default function App() {
                 </View>
               )}
             ListEmptyComponent={<Text style={styles.helperText}>No dishes found.</Text>}
+            ListFooterComponent={
+              dishTotalPages > 1 ? (
+                <View style={{ paddingTop: 12, gap: 10 }}>
+                  <Text style={[styles.helperText, { textAlign: "center" }]}>
+                    Page {dishPage} of {dishTotalPages}
+                  </Text>
+                  <View style={styles.orderActionRow}>
+                    <TouchableOpacity
+                      style={[styles.actionGhost, dishPage <= 1 && { opacity: 0.5 }]}
+                      disabled={dishPage <= 1 || catalogBusy}
+                      onPress={() => changeDishPage(dishPage - 1)}
+                    >
+                      <Text style={styles.actionGhostText}>Previous</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionGhost, dishPage >= dishTotalPages && { opacity: 0.5 }]}
+                      disabled={dishPage >= dishTotalPages || catalogBusy}
+                      onPress={() => changeDishPage(dishPage + 1)}
+                    >
+                      <Text style={styles.actionGhostText}>Next</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null
+            }
           />
           )
         ) : customerTab === "orders" ? (
