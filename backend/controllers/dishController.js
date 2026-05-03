@@ -47,7 +47,7 @@ export async function addDish(req, res) {
 //  List All Dishes
 export async function listDishes(req, res) {
   try {
-    const dishes = await Dish.find().sort({ name: 1 }).lean();
+    const dishes = await Dish.find().sort({ isTrending: -1, name: 1 }).lean();
     res.json({ dishes });
   } catch (error) {
     res.status(500).json({ message: error.message });

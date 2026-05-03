@@ -9,6 +9,8 @@ import {
   normalizeTimeLabel
 } from "../utils/reservation.js";
 
+const MANUAL_BOOKING_FEE = 250;
+
 // LIST TABLE RESERVATIONS
 export async function listTableReservations(req, res) {
   try {
@@ -140,8 +142,9 @@ export async function createManualReservation(req, res) {
       items: [{
         name: "Manual Booking",
         quantity: 1,
-        price: 0
+        price: MANUAL_BOOKING_FEE
       }],
+      totalAmount: MANUAL_BOOKING_FEE,
       isManualBooking: true,
       createdBy: req.user?.email || "system"
     });
